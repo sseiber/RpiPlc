@@ -1,0 +1,18 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: rpi-plc-storage-class
+provisioner: microk8s.io/hostpath
+reclaimPolicy: Delete
+parameters:
+  pvDir: /rpi-plc/data
+volumeBindingMode: Immediate
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rpi-plc-pvc
+spec:
+  storageClassName: rpi-plc-storage-class
+  accessModes: [ReadWriteOnce]
+  resources: {requests: {storage: 10Mi}}

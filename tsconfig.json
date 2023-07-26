@@ -1,0 +1,30 @@
+{
+    "compilerOptions": {
+        "outDir": "./dist",
+        "module": "CommonJS",
+        "moduleResolution": "node",
+        "target": "ES6",
+        "sourceMap": true,
+        "jsx": "react",
+        "skipLibCheck": true,
+        "noImplicitAny": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "typeRoots": [
+            "node_modules/@types"
+        ],
+        "lib": [
+            "ES6"
+        ]
+    },
+    "compileOnSave": true,
+    "include": [
+        "./src/**/*.ts",
+        "node-libgpiod.d.ts"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}

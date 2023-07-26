@@ -1,0 +1,66 @@
+{
+    "name": "rpi-plc",
+    "version": "1.0.0",
+    "description": "Rpi sample plc and opcua server service",
+    "main": "index.js",
+    "scripts": {
+        "test": "node ./node_modules/jest/bin/jest.js",
+        "eslint": "eslint -c .eslintrc.json --ext .ts,.js ./src",
+        "build": "node ./node_modules/typescript/bin/tsc -p .",
+        "dockerbuild": "npm run build && node ./.scripts/dockerBuild.js -b -r .",
+        "dockerpush": "node ./.scripts/dockerBuild.js -p -r .",
+        "preversion": "npm test",
+        "version": "npm run dockerbuild",
+        "postversion": "npm run dockerpush",
+        "postinstall": "node ./.scripts/postInstallSetup.js -r ."
+    },
+    "author": "sseiber",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git@github.com:sseiber/Rpi-Plc.git"
+    },
+    "dependencies": {
+        "@hapi/boom": "^10.0.1",
+        "@hapi/hapi": "^21.3.2",
+        "@hapi/wreck": "^18.0.1",
+        "commander": "^11.0.0",
+        "fs-extra": "^11.1.1",
+        "moment": "^2.29.4",
+        "node-libgpiod": "0.3.0",
+        "node-opcua": "^2.107.0",
+        "serialport": "^11.0.0",
+        "spryly": "^3.0.2",
+        "uuid": "^9.0.0"
+    },
+    "devDependencies": {
+        "@types/fs-extra": "^11.0.1",
+        "@types/jest": "^29.5.2",
+        "@types/node": "^20.3.3",
+        "@types/serialport": "^8.0.2",
+        "@typescript-eslint/eslint-plugin": "^5.60.1",
+        "@typescript-eslint/parser": "^5.60.1",
+        "eslint": "^8.44.0",
+        "eslint-plugin-import": "^2.27.5",
+        "eslint-plugin-jsdoc": "^46.4.3",
+        "jest": "^29.5.0",
+        "ts-jest": "^29.1.1",
+        "typescript": "^5.1.6"
+    },
+    "jest": {
+        "rootDir": "./src/",
+        "testRegex": "(/__tests__/.*|\\.(test|spec))\\.(ts|tsx)$",
+        "moduleFileExtensions": [
+            "ts",
+            "tsx",
+            "js",
+            "json"
+        ],
+        "transform": {
+            ".tsx?": "ts-jest"
+        },
+        "moduleNameMapper": {
+            "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "./__mocks__/fileMock.js"
+        }
+    }
+}
