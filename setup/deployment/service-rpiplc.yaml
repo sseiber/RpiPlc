@@ -17,16 +17,20 @@ spec:
           claimName: rpi-plc-pvc
       containers:
       - name: rpiplc-api-server
-        image: iotccrscotts.azurecr.io/rpi-plc:3.2.3-arm64v8
+        image: iotccrscotts.azurecr.io/rpi-plc:1.0.2-arm64v8
+        env:
+        - name: DEBUG
+          value: "ALL"
         ports:
         - containerPort: 9092
+        - containerPort: 4334
         volumeMounts:
         - name: rpi-plc-volume
           mountPath: /rpi-plc/data
         securityContext:
           privileged: true
       imagePullSecrets:
-      - name: rpi-plc-acr-access
+      - name: rpiplc-acr-access
       restartPolicy: Always
 ---
 apiVersion: v1
@@ -34,6 +38,7 @@ kind: Service
 metadata:
   name: rpiplc-server-service
 spec:
+  type: LoadBalancer
   selector:
     app: rpiplc-api-server
   ports:
@@ -41,40 +46,7 @@ spec:
     protocol: TCP
     port: 9092
     targetPort: 9092
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: rpiplc-client-deployment
-spec:
-  selector:
-    matchLabels:
-      app: rpiplc-client
-  template:
-    metadata:
-      labels:
-        app: rpiplc-client
-    spec:
-      containers:
-      - name: rpiplc-client
-        image: iotccrscotts.azurecr.io/rpiplc-plc-client:3.2.0-arm64v8
-        ports:
-        - containerPort: 80
-      imagePullSecrets:
-      - name: rpi-plc-acr-access
-      restartPolicy: Always
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: rpiplc-client-service
-spec:
-  type: NodePort
-  selector:
-    app: rpiplc-client
-  ports:
-  - name: rpiplc-client
-    port: 80
-    targetPort: 80
+  - name: rpiplc-opcua-server
     protocol: TCP
-    nodePort: 31000
+    port: 4334
+    targetPort: 4334

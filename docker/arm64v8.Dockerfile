@@ -6,6 +6,8 @@ RUN apk add --no-cache \
     python3 \
     libgpiod \
     libgpiod-dev \
+    openssl \
+    ca-certificates \
     nodejs \
     npm \
     && rm -rf /var/cache/apk/*
@@ -27,6 +29,6 @@ RUN npm install -q && \
     npm prune --production && \
     rm -rf src
 
-EXPOSE 9092
+EXPOSE 9092 4334
 
 ENTRYPOINT ["node", "./dist/index"]

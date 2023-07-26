@@ -26,7 +26,7 @@ spec:
         securityContext:
           privileged: true
       imagePullSecrets:
-      - name: rpi-plc-acr-access
+      - name: rpiplc-acr-access
 ---
 apiVersion: v1
 kind: Service
