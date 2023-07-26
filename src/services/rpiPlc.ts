@@ -15,14 +15,14 @@ export class RpiPlcService {
     @inject('$server')
     private server: Server;
 
-    private plcControllers: PlcController[];
+    private plcController: PlcController;
     private opcuaServer: RpiPlcOpcuaServer;
 
     public async init(): Promise<void> {
         this.server.log([ModuleName, 'info'], `RpiPlcService initialzation`);
 
         try {
-            this.plcControllers = await this.initializePlcControllers();
+            this.plcController = await this.initializePlcController();
 
             this.opcuaServer = await this.initializeOpcuaServer();
         }
@@ -55,11 +55,11 @@ export class RpiPlcService {
 
             switch (controlRequest.action) {
                 case RpiPlcRequestAction.IndicatorLight:
-                    response.status = await this.plcControllers[controlRequest.plcId].indicatorLight(controlRequest.data);
+                    response.status = await this.plcController.indicatorLight(controlRequest.data);
                     break;
 
                 case RpiPlcRequestAction.TfMeasurement:
-                    await this.plcControllers[controlRequest.plcId].tfMeasurement(controlRequest.data);
+                    await this.plcController.tfMeasurement(controlRequest.data);
                     response.message = `Plc distance measurement started...`;
                     break;
 
@@ -82,31 +82,27 @@ export class RpiPlcService {
         return response;
     }
 
-    private async initializePlcControllers(): Promise<PlcController[]> {
-        this.server.log([ModuleName, 'info'], `initializePlcControllers`);
+    private async initializePlcController(): Promise<PlcController> {
+        this.server.log([ModuleName, 'info'], `initializePlcController`);
 
-        const plcControllers: PlcController[] = [];
+        let plcController: PlcController;
 
         try {
-            const plcGpioConfigs = this.server.settings.app.rpiPlc.plcGpioConfigs;
+            const plcDeviceConfig = this.server.settings.app.rpiPlc.plcDeviceConfig;
 
-            this.server.log([ModuleName, 'info'], `Plc controller configuration:\n${JSON.stringify(plcGpioConfigs)}\n`);
+            this.server.log([ModuleName, 'info'], `Plc controller configuration:\n${JSON.stringify(plcDeviceConfig)}\n`);
 
             this.server.log([ModuleName, 'info'], `Creating plc controllers`);
-            let plcId = 0;
-            for (const plcGpioConfig of plcGpioConfigs) {
-                const plcController = new PlcController(this.server, plcId++, plcGpioConfig);
 
-                await plcController.init();
+            plcController = new PlcController(this.server, plcDeviceConfig);
 
-                plcControllers.push(plcController);
-            }
+            await plcController.init();
         }
         catch (ex) {
-            this.server.log([ModuleName, 'error'], `An error occurred in initializePlcControllers: ${ex.message}`);
+            this.server.log([ModuleName, 'error'], `An error occurred in initializePlcController: ${ex.message}`);
         }
 
-        return plcControllers;
+        return plcController;
     }
 
     private async initializeOpcuaServer(): Promise<RpiPlcOpcuaServer> {
@@ -116,7 +112,7 @@ export class RpiPlcService {
             this.server.log([ModuleName, 'info'], `initializeOpcuaServer`);
 
             this.server.log([ModuleName, 'info'], `Initializing server...`);
-            opcuaServer = new RpiPlcOpcuaServer(this.server);
+            opcuaServer = new RpiPlcOpcuaServer(this.server, this.plcController);
 
             await opcuaServer.start();
 

@@ -2,7 +2,7 @@ import { OPCUAServerOptions } from 'node-opcua';
 import { IAssetRootConfig } from './opcuaServerTypes';
 
 export interface IRpiPlcConfig {
-    plcGpioConfigs: IPlcGpioConfig[];
+    plcDeviceConfig: IPlcDeviceConfig;
     serverConfig: OPCUAServerOptions;
     assetRootConfig: IAssetRootConfig;
 }
@@ -12,19 +12,24 @@ export const enum GPIOPinMode {
     Output = 'OUTPUT'
 }
 
-export interface IPlcGpioPinConfig {
+export interface IPlcGpioDeviceConfig {
     pin: number;
     mode: GPIOPinMode;
 }
 
-export interface IPlcGpioConfig {
-    indicatorLightRedPin: IPlcGpioPinConfig;
-    indicatorLightYellowPin: IPlcGpioPinConfig;
-    indicatorLightGreenPin: IPlcGpioPinConfig;
-    tfLunaSerialPort: string;
-    tfLunaBuadRate: number;
-    tfLunaSampleRate: number;
-    tfLunaSerialParserLog: boolean;
+export interface IPlcTfLunaDeviceConfig {
+    deviceId: string;
+    serialPort: string;
+    buadRate: number;
+    sampleRate: number;
+    serialParserLog: boolean;
+}
+
+export interface IPlcDeviceConfig {
+    indicatorLightDeviceRed: IPlcGpioDeviceConfig;
+    indicatorLightDeviceYellow: IPlcGpioDeviceConfig;
+    indicatorLightDeviceGreen: IPlcGpioDeviceConfig;
+    tfLunaDevice: IPlcTfLunaDeviceConfig;
 }
 
 export const enum GPIOState {
@@ -33,7 +38,6 @@ export const enum GPIOState {
 }
 
 export interface IIndicatorLightAction {
-    plcId: number;
     ledRedState: GPIOState;
     ledYellowState: GPIOState;
     ledGreenState: GPIOState;
@@ -45,7 +49,6 @@ export const enum TfMeasurementState {
 }
 
 export interface ITfMeasurementAction {
-    plcId: number;
     measurementState: TfMeasurementState;
 }
 
@@ -55,7 +58,6 @@ export enum RpiPlcRequestAction {
 }
 
 export interface IRpiPlcServiceRequest {
-    plcId: number;
     action: RpiPlcRequestAction;
     data?: any;
 }

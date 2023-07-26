@@ -61,10 +61,6 @@ async function start() {
             : '/rpi-plc/data';
 
         const plcConfig = fse.readJsonSync(pathResolve(storageRoot, 'plcConfig.json'));
-        if (!Array.isArray(plcConfig)) {
-            throw new Error('Error: Invalid RpiPlc configuration detected');
-        }
-
         const opcuaServerConfig = fse.readJSONSync(pathResolve(storageRoot, 'opcuaServerConfig.json'));
 
         const server = await compose(manifest(plcConfig, opcuaServerConfig.serverConfig, opcuaServerConfig.assetRootConfig), composeOptions);

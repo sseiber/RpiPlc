@@ -16,7 +16,8 @@ export interface IOpcVariable {
 }
 
 export interface IAssetTag {
-    name: string;
+    browseName: string;
+    displayName: string;
     description: string;
     sampleInterval: number;
     dataTypeName: string;

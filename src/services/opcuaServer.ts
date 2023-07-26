@@ -17,6 +17,7 @@ import {
     IAssetConfig,
     IAssetTag
 } from '../models/opcuaServerTypes';
+import { PlcController } from './plcController';
 
 const ModuleName = 'RpiPlcOpcuaServer';
 
@@ -28,9 +29,11 @@ export class RpiPlcOpcuaServer {
     private rootAssetsFolder: UAObject;
     private opcAssetMap: Map<string, IOpcAssetInfo> = new Map<string, IOpcAssetInfo>();
     private opcVariableMap: Map<string, IOpcVariable> = new Map<string, IOpcVariable>();
+    private plcController: PlcController;
 
-    constructor(server: Server) {
+    constructor(server: Server, plcController: PlcController) {
         this.server = server;
+        this.plcController = plcController;
     }
 
     public getServer(): OPCUAServer {
@@ -119,7 +122,7 @@ export class RpiPlcOpcuaServer {
 
                     opcVariable.variable = await this.createAssetVariable(opcAsset, tag, opcVariable.value);
 
-                    assetVariablesMap.set(tag.name, opcVariable);
+                    assetVariablesMap.set(tag.browseName, opcVariable);
                     this.opcVariableMap.set(opcVariable.variable.nodeId.value.toString(), opcVariable);
                 }
 
@@ -142,8 +145,8 @@ export class RpiPlcOpcuaServer {
         try {
             uaVariable = this.localServerNamespace.addVariable({
                 componentOf: asset,
-                browseName: tag.name,
-                displayName: tag.name,
+                browseName: tag.browseName,
+                displayName: tag.displayName,
                 description: tag.description,
                 dataType: tag.dataTypeName,
                 minimumSamplingInterval: tag.sampleInterval,
@@ -162,10 +165,9 @@ export class RpiPlcOpcuaServer {
     private createDataAccessor(tag: IAssetTag, dataValue: DataValue): BindVariableOptionsVariation2 {
         return {
             timestamped_get: (): DataValue => {
-                if (tag.name === 'Activate') {
-                    dataValue.value.value = Math.random() * 100;
-                }
+                const deviceValue = this.plcController.getDeviceValue(tag.browseName);
 
+                dataValue.value.value = deviceValue;
                 dataValue.sourceTimestamp = new Date();
 
                 return dataValue;
@@ -174,6 +176,8 @@ export class RpiPlcOpcuaServer {
                 if (newDataValue.value.dataType !== this.getDataTypeEnumFromString(tag.dataTypeName)) {
                     return StatusCodes.Bad;
                 }
+
+                this.plcController.setDeviceValue(tag.browseName, newDataValue.value.value);
 
                 dataValue.value = newDataValue.value;
                 dataValue.sourceTimestamp = newDataValue.sourceTimestamp;
