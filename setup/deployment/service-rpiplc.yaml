@@ -17,7 +17,7 @@ spec:
           claimName: rpi-plc-pvc
       containers:
       - name: rpi-plc-server
-        image: iotccrscotts.azurecr.io/rpi-plc:1.0.2-arm64v8
+        image: iotccrscotts.azurecr.io/rpi-plc:1.0.4-arm64v8
         volumeMounts:
         - name: rpi-plc-volume
           mountPath: /rpi-plc/data
