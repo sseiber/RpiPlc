@@ -1,29 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rpiplc-server-deployment
+  name: rpi-plc-deployment
 spec:
   selector:
     matchLabels:
-      app: rpiplc-api-server
+      app: rpi-plc-server
   template:
     metadata:
       labels:
-        app: rpiplc-api-server
+        app: rpi-plc-server
     spec:
       volumes:
       - name: rpi-plc-volume
         persistentVolumeClaim:
           claimName: rpi-plc-pvc
       containers:
-      - name: rpiplc-api-server
+      - name: rpi-plc-server
         image: iotccrscotts.azurecr.io/rpi-plc:1.0.2-arm64v8
-        env:
-        - name: DEBUG
-          value: "ALL"
-        ports:
-        - containerPort: 9092
-        - containerPort: 4334
         volumeMounts:
         - name: rpi-plc-volume
           mountPath: /rpi-plc/data
@@ -36,17 +30,19 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: rpiplc-server-service
+  name: rpi-plc-service
 spec:
-  type: LoadBalancer
+  type: NodePort
   selector:
-    app: rpiplc-api-server
+    app: rpi-plc-server
   ports:
-  - name: rpiplc-api-server
+  - name: rpi-plc-server
     protocol: TCP
     port: 9092
     targetPort: 9092
-  - name: rpiplc-opcua-server
+    nodePort: 30010
+  - name: rpi-opcua-server
     protocol: TCP
     port: 4334
     targetPort: 4334
+    nodePort: 30011

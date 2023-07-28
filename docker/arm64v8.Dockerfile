@@ -7,7 +7,6 @@ RUN apk add --no-cache \
     libgpiod \
     libgpiod-dev \
     openssl \
-    ca-certificates \
     nodejs \
     npm \
     && rm -rf /var/cache/apk/*
