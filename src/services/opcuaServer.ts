@@ -2,10 +2,12 @@ import { Server } from '@hapi/hapi';
 import {
     AddressSpace,
     BindVariableOptionsVariation2,
+    CallMethodResultOptions,
     DataType,
     DataValue,
     Namespace,
     OPCUAServer,
+    SessionContext,
     StatusCodes,
     UAObject,
     UAVariable,
@@ -15,7 +17,9 @@ import {
     IOpcAssetInfo,
     IOpcVariable,
     IAssetConfig,
-    IAssetTag
+    IAssetTag,
+    IMethodConfig,
+    IMethodInputArgumentConfig
 } from '../models/opcuaServerTypes';
 import { PlcController } from './plcController';
 
@@ -133,6 +137,43 @@ export class RpiPlcOpcuaServer {
 
                 this.opcAssetMap.set(assetConfig.name, opcAssetInfo);
             }
+
+            const methodConfigs: IMethodConfig[] = this.server.settings.app.rpiPlc.assetRootConfig.methods;
+
+            for (const methodConfig of methodConfigs) {
+                const method = this.localServerNamespace.addMethod(this.rootAssetsFolder, {
+                    browseName: methodConfig.browseName,
+                    displayName: methodConfig.displayName,
+                    description: methodConfig.description,
+                    inputArguments: methodConfig.inputArguments.map((arg: IMethodInputArgumentConfig) => {
+                        return {
+                            name: arg.name,
+                            description: arg.description,
+                            dataType: this.getDataTypeEnumFromString(arg.dataTypeName)
+                        };
+                    }),
+                    outputArguments: methodConfig.outputArguments.map((arg: IMethodInputArgumentConfig) => {
+                        return {
+                            name: arg.name,
+                            description: arg.description,
+                            dataType: this.getDataTypeEnumFromString(arg.dataTypeName)
+                        };
+                    })
+                });
+
+                switch (methodConfig.browseName) {
+                    case 'controlIndicatorLights':
+                        method.bindMethod(this.controlIndicatorLights.bind(this));
+                        break;
+
+                    case 'controlDistanceSensor':
+                        method.bindMethod(this.controlDistanceSensor.bind(this));
+                        break;
+
+                    default:
+                        this.server.log([ModuleName, 'warning'], `Unknown method name: ${methodConfig.browseName}`);
+                }
+            }
         }
         catch (ex) {
             this.server.log([ModuleName, 'error'], `Error while processing server configuration (adding variables): ${ex.message}`);
@@ -160,6 +201,70 @@ export class RpiPlcOpcuaServer {
         }
 
         return uaVariable;
+    }
+
+    private async controlIndicatorLights(inputArguments: Variant[], _context: SessionContext): Promise<CallMethodResultOptions> {
+        this.server.log([ModuleName, 'info'], `controlIndicatorLights`);
+
+        const callMethodResult = {
+            statusCode: StatusCodes.Good,
+            outputArguments: [
+                {
+                    dataType: DataType.Boolean,
+                    value: true
+                },
+                {
+                    dataType: DataType.String,
+                    value: 'Success'
+                }
+            ]
+        };
+
+        try {
+            this.plcController.setDeviceValue(`indicatorLightDeviceRed`, inputArguments[0].value);
+            this.plcController.setDeviceValue(`indicatorLightDeviceYellow`, inputArguments[1].value);
+            this.plcController.setDeviceValue(`indicatorLightDeviceGreen`, inputArguments[2].value);
+        }
+        catch (ex) {
+            this.server.log([ModuleName, 'error'], `Error in controlIndicatorLights: ${ex.message}`);
+
+            callMethodResult.statusCode = StatusCodes.Bad;
+            callMethodResult.outputArguments[0].value = false;
+            callMethodResult.outputArguments[1].value = ex.message;
+        }
+
+        return callMethodResult;
+    }
+
+    private async controlDistanceSensor(inputArguments: Variant[], _context: SessionContext): Promise<CallMethodResultOptions> {
+        this.server.log([ModuleName, 'info'], `controlDistanceSensor`);
+
+        const callMethodResult = {
+            statusCode: StatusCodes.Good,
+            outputArguments: [
+                {
+                    dataType: DataType.Boolean,
+                    value: true
+                },
+                {
+                    dataType: DataType.String,
+                    value: 'Success'
+                }
+            ]
+        };
+
+        try {
+            this.plcController.setDeviceValue(`tfLunaDevice`, inputArguments[0].value);
+        }
+        catch (ex) {
+            this.server.log([ModuleName, 'error'], `Error in controlDistanceSensor: ${ex.message}`);
+
+            callMethodResult.statusCode = StatusCodes.Bad;
+            callMethodResult.outputArguments[0].value = false;
+            callMethodResult.outputArguments[1].value = ex.message;
+        }
+
+        return callMethodResult;
     }
 
     private createDataAccessor(tag: IAssetTag, dataValue: DataValue): BindVariableOptionsVariation2 {

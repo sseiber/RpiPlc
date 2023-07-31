@@ -133,7 +133,15 @@ export class PlcController {
             await this.getTFLunaVersion();
 
             this.deviceMap.set(plcConfigDeviceNames[3], {
-                get: () => this.tfLunaStatus.sampleRate === 0 ? 0 : this.tfLunaStatus.measurement
+                get: () => this.tfLunaStatus.sampleRate === 0 ? 0 : this.tfLunaStatus.measurement,
+                set: (value: any) => {
+                    if (value) {
+                        void this.setTFLunaSampleRate(0);
+                    }
+                    else {
+                        void this.setTFLunaSampleRate(this.plcDeviceConfig.tfLunaDevice.sampleRate);
+                    }
+                }
             });
         }
         catch (ex) {

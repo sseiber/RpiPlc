@@ -30,7 +30,28 @@ export interface IAssetConfig {
     tags: IAssetTag[];
 }
 
+export interface IMethodInputArgumentConfig {
+    name: string;
+    description: string;
+    dataTypeName: string;
+}
+
+export interface IMethodOutputArgumentConfig {
+    name: string;
+    description: string;
+    dataTypeName: string;
+}
+
+export interface IMethodConfig {
+    browseName: string;
+    displayName: string;
+    description: string;
+    inputArguments: IMethodInputArgumentConfig[];
+    outputArguments: IMethodOutputArgumentConfig[];
+}
+
 export interface IAssetRootConfig {
     rootFolderName: string;
     assets: IAssetConfig[];
+    methods: IMethodConfig[];
 }
