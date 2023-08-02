@@ -132,6 +132,8 @@ export class PlcController {
 
             await this.getTFLunaVersion();
 
+            // TODO:
+            // this is mixing data plane (get: measurement value) and control plane (set: control the device sampling on/off)
             this.deviceMap.set(plcConfigDeviceNames[3], {
                 get: () => this.tfLunaStatus.sampleRate === 0 ? 0 : this.tfLunaStatus.measurement,
                 set: (value: any) => void this.setTFLunaSampleRate(!value ? 0 : this.plcDeviceConfig.tfLunaDevice.sampleRate)

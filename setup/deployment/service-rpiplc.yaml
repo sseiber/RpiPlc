@@ -18,6 +18,9 @@ spec:
       containers:
       - name: rpi-plc-server
         image: iotccrscotts.azurecr.io/rpi-plc:1.0.7-arm64v8
+        env:
+        - name: DEBUG
+          value: "None"
         volumeMounts:
         - name: rpi-plc-volume
           mountPath: /rpi-plc/data
