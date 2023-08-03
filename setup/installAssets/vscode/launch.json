@@ -1,0 +1,30 @@
+{
+    // Use IntelliSense to learn about possible Node.js debug attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Service",
+            "console": "integratedTerminal",
+            "program": "${workspaceFolder}/src/index.ts",
+            "smartStep": true,
+            "showAsyncStacks": true,
+            "sourceMaps": true,
+            "preLaunchTask": "${defaultBuildTask}",
+            "outFiles": [
+                "${workspaceFolder}/dist/**/*.js"
+            ],
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "env": {
+                "PORT": "9092",
+                "RPIPLC_SERVICE_STORAGE": "../setup/deployment",
+                "DEBUG": "NONE"
+            }
+        }
+    ]
+}

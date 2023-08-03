@@ -17,7 +17,7 @@ spec:
           claimName: rpi-plc-pvc
       containers:
       - name: rpi-plc-server
-        image: iotccrscotts.azurecr.io/rpi-plc:1.0.7-arm64v8
+        image: iotccrscotts.azurecr.io/rpi-plc:1.0.8-arm64v8
         env:
         - name: DEBUG
           value: "None"

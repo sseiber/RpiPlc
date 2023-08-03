@@ -26,8 +26,18 @@ function start() {
         log(`Creating workspace environment: ${path.resolve(rootFolderPath)}`);
         log(`Platform: ${os.type}`);
 
-        const srcFolderPath = path.resolve(rootFolderPath, `setup`, `installAssets`);
-        const dstFolderPath = path.resolve(rootFolderPath, `configs`);
+        let srcFolderPath = path.resolve(rootFolderPath, `setup`, `installAssets`, `configs`);
+        let dstFolderPath = path.resolve(rootFolderPath, `configs`);
+
+        if (!fse.pathExistsSync(dstFolderPath)) {
+
+            // fse.ensureDirSync(dstFolderPath);
+
+            fse.copySync(srcFolderPath, dstFolderPath);
+        }
+
+        srcFolderPath = path.resolve(rootFolderPath, `setup`, `installAssets`, `vscode`);
+        dstFolderPath = path.resolve(rootFolderPath, `.vscode`);
 
         if (!fse.pathExistsSync(dstFolderPath)) {
 

@@ -79,9 +79,6 @@ export class TFLunaResponseParser extends Transform {
                         this.tfLog([ModuleName, 'debug'], `Unknown response data returned: ${commandId}`);
                         break;
                 }
-
-                this.push(tfResponse);
-                data = data.subarray(length);
             }
             else if (Buffer.compare(data.subarray(0, 2), Buffer.from(TFLunaMeasureHeader)) === 0) {
                 header = data.readUInt16BE(0);
@@ -90,10 +87,10 @@ export class TFLunaResponseParser extends Transform {
                 checksum = data.readUInt8(data.length - 1);
 
                 tfResponse = this.parseTriggerResponse(commandId, data);
-
-                this.push(tfResponse);
-                data = data.subarray(length);
             }
+
+            this.push(tfResponse);
+            data = data.subarray(length);
         }
         else {
             this.tfLog([ModuleName, 'debug'], `Parser data less than 2 bytes...`);
