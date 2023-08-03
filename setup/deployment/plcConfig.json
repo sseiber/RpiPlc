@@ -1,0 +1,20 @@
+{
+    "indicatorLightDeviceRed": {
+        "pin": 17,
+        "mode": "OUTPUT"
+    },
+    "indicatorLightDeviceYellow": {
+        "pin": 18,
+        "mode": "OUTPUT"
+    },
+    "indicatorLightDeviceGreen": {
+        "pin": 19,
+        "mode": "OUTPUT"
+    },
+    "tfLunaDevice": {
+        "serialPort": "/dev/ttyAMA0",
+        "buadRate": 115200,
+        "sampleRate": 2,
+        "serialParserLog": false
+    }
+}

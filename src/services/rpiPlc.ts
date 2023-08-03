@@ -55,7 +55,11 @@ export class RpiPlcService {
 
             switch (controlRequest.action) {
                 case RpiPlcRequestAction.IndicatorLight:
-                    response.status = await this.plcController.indicatorLight(controlRequest.data);
+                    response.status = await this.plcController.indicatorLightControl(controlRequest.data);
+                    break;
+
+                case RpiPlcRequestAction.IndicatorMode:
+                    response.status = await this.plcController.indicatorLightModeControl(controlRequest.data);
                     break;
 
                 case RpiPlcRequestAction.TfMeasurement:

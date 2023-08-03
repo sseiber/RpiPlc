@@ -1,0 +1,176 @@
+{
+    "serverConfig": {
+        "port": 4334,
+        "resourcePath": "/SeiberHome/RpiPlc",
+        "buildInfo": {
+            "manufacturerName": "Seiber",
+            "productName": "RpiPlc",
+            "softwareVersion": "1.0",
+            "buildNumber": "v1.0.0",
+            "buildDate": "2023-07-26T00:00:00.0Z"
+        },
+        "serverInfo": {
+            "applicationName": {
+                "text": "RpiPlc",
+                "locale": "en"
+            },
+            "applicationUri": "urn:RpiPlc",
+            "productUri": "RpiPlcUri"
+        },
+        "serverCapabilities": {
+            "serverProfileArray": [
+                "http://opcfoundation.org/UA-Profile/Server/StandardUA2017",
+                "http://opcfoundation.org/UA-Profile/Server/AddressSpaceNotifier",
+                "http://opcfoundation.org/UA-Profile/Server/StandardEventSubscription",
+                "http://opcfoundation.org/UA-Profile/Server/Methods",
+                "http://opcfoundation.org/UA-Profile/Server/StateMachine",
+                "http://opcfoundation.org/UA-Profile/Server/ACBaseCondition",
+                "http://opcfoundation.org/UA-Profile/Server/ACRefresh2",
+                "http://opcfoundation.org/UA-Profile/Server/ACAddressSpaceInstance",
+                "http://opcfoundation.org/UA-Profile/Server/ACAlarm",
+                "http://opcfoundation.org/UA-Profile/Server/ACEnable",
+                "http://opcfoundation.org/UA-Profile/Server/ACAlarm",
+                "http://opcfoundation.org/UA-Profile/Server/ACAckAlarm",
+                "http://opcfoundation.org/UA-Profile/Server/ACExclusiveAlarming",
+                "http://opcfoundation.org/UA-Profile/Server/ACNon-ExclusiveAlarming",
+                "http://opcfoundation.org/UA-Profile/Server/HistoricalRawData",
+                "http://opcfoundation.org/UA-Profile/Server/HistoricalDataAtTime"
+            ]
+        }
+    },
+    "assetRootConfig": {
+        "rootFolderName": "rpi-plc",
+        "assets": [
+            {
+                "name": "ActivityIndicator",
+                "tags": [
+                    {
+                        "browseName": "indicatorLightDeviceRed",
+                        "displayName": "IndicatorLightRed",
+                        "description": "Red LED indicator light",
+                        "sampleInterval": 1000,
+                        "dataTypeName": "Byte",
+                        "value": 0,
+                        "writeable": true
+                    },
+                    {
+                        "browseName": "indicatorLightDeviceYellow",
+                        "displayName": "IndicatorLightYellow",
+                        "description": "Yellow LED indicator light",
+                        "sampleInterval": 1000,
+                        "dataTypeName": "Byte",
+                        "value": 0,
+                        "writeable": true
+                    },
+                    {
+                        "browseName": "indicatorLightDeviceGreen",
+                        "displayName": "IndicatorLightGreen",
+                        "description": "Green LED indicator light",
+                        "sampleInterval": 1000,
+                        "dataTypeName": "Byte",
+                        "value": 0,
+                        "writeable": true
+                    }
+                ]
+            },
+            {
+                "name": "DistanceSensor",
+                "tags": [
+                    {
+                        "browseName": "tfLunaDevice",
+                        "displayName": "TFLuna",
+                        "description": "TFLuna distance sensor",
+                        "sampleInterval": 500,
+                        "dataTypeName": "Int32",
+                        "value": 0,
+                        "writeable": false
+                    }
+                ]
+            }
+        ],
+        "methods": [
+            {
+                "browseName": "controlIndicatorLights",
+                "displayName": "Control the LED indicator lights",
+                "description": "Sets the red, yellow, and/or white LED lights to on or off",
+                "inputArguments": [
+                    {
+                        "name": "redLED",
+                        "description": "Sets the red LED indicator light to on or off",
+                        "dataTypeName": "Boolean"
+                    },
+                    {
+                        "name": "yellowLED",
+                        "description": "Sets the yellow LED indicator light to on or off",
+                        "dataTypeName": "Boolean"
+                    },
+                    {
+                        "name": "greenLED",
+                        "description": "Sets the green LED indicator light to on or off",
+                        "dataTypeName": "Boolean"
+                    }
+                ],
+                "outputArguments": [
+                    {
+                        "name": "success",
+                        "description": "Boolean indicator of success",
+                        "dataTypeName": "Boolean"
+                    },
+                    {
+                        "name": "message",
+                        "description": "Message describing the method result",
+                        "dataTypeName": "String"
+                    }
+                ]
+            },
+            {
+                "browseName": "setIndicatorLightMode",
+                "displayName": "Set the mode of the LED indicator lights",
+                "description": "Sets the mode to AUTO (controlled by the distance sensor), GREEN (steady green), YELLOWFLASHING (flashing yellow), or REDFLASHING (flashing red)",
+                "inputArguments": [
+                    {
+                        "name": "mode",
+                        "description": "Specifies the indicator light mode",
+                        "dataTypeName": "String"
+                    }
+                ],
+                "outputArguments": [
+                    {
+                        "name": "success",
+                        "description": "Boolean indicator of success",
+                        "dataTypeName": "Boolean"
+                    },
+                    {
+                        "name": "message",
+                        "description": "Message describing the method result",
+                        "dataTypeName": "String"
+                    }
+                ]
+            },
+            {
+                "browseName": "controlDistanceSensor",
+                "displayName": "Control the TF-Luna sensor",
+                "description": "Activate or deactivate TF-Luna sensor",
+                "inputArguments": [
+                    {
+                        "name": "control",
+                        "description": "Control action, true = activate, false = deactivate",
+                        "dataTypeName": "Boolean"
+                    }
+                ],
+                "outputArguments": [
+                    {
+                        "name": "success",
+                        "description": "Boolean indicator of success",
+                        "dataTypeName": "Boolean"
+                    },
+                    {
+                        "name": "message",
+                        "description": "Message describing the method result",
+                        "dataTypeName": "String"
+                    }
+                ]
+            }
+        ]
+    }
+}

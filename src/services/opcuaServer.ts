@@ -166,6 +166,10 @@ export class RpiPlcOpcuaServer {
                         method.bindMethod(this.controlIndicatorLights.bind(this));
                         break;
 
+                    case 'setIndicatorLightMode':
+                        method.bindMethod(this.setIndicatorLightMode.bind(this));
+                        break;
+
                     case 'controlDistanceSensor':
                         method.bindMethod(this.controlDistanceSensor.bind(this));
                         break;
@@ -227,6 +231,37 @@ export class RpiPlcOpcuaServer {
         }
         catch (ex) {
             this.server.log([ModuleName, 'error'], `Error in controlIndicatorLights: ${ex.message}`);
+
+            callMethodResult.statusCode = StatusCodes.Bad;
+            callMethodResult.outputArguments[0].value = false;
+            callMethodResult.outputArguments[1].value = ex.message;
+        }
+
+        return callMethodResult;
+    }
+
+    private async setIndicatorLightMode(inputArguments: Variant[], _context: SessionContext): Promise<CallMethodResultOptions> {
+        this.server.log([ModuleName, 'info'], `setIndicatorLightMode`);
+
+        const callMethodResult = {
+            statusCode: StatusCodes.Good,
+            outputArguments: [
+                {
+                    dataType: DataType.Boolean,
+                    value: true
+                },
+                {
+                    dataType: DataType.String,
+                    value: 'Success'
+                }
+            ]
+        };
+
+        try {
+            this.plcController.setIndicatorLightMode(inputArguments[0].value);
+        }
+        catch (ex) {
+            this.server.log([ModuleName, 'error'], `Error in setIndicatorLightMode: ${ex.message}`);
 
             callMethodResult.statusCode = StatusCodes.Bad;
             callMethodResult.outputArguments[0].value = false;

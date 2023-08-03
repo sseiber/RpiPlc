@@ -43,6 +43,17 @@ export interface IIndicatorLightAction {
     ledGreenState: GPIOState;
 }
 
+export const enum IndicatorLightMode {
+    AUTO = 'AUTO',
+    GREEN = 'GREEN',
+    YELLOWFLASHING = 'YELLOWFLASHING',
+    REDFLASHING = 'REDFLASHING'
+}
+
+export interface IIndicatorLightModeAction {
+    mode: IndicatorLightMode;
+}
+
 export const enum TfMeasurementState {
     Stop = 'STOP',
     Start = 'START'
@@ -54,6 +65,7 @@ export interface ITfMeasurementAction {
 
 export enum RpiPlcRequestAction {
     IndicatorLight = 'INDICATORLIGHT',
+    IndicatorMode = 'INDICATORMODE',
     TfMeasurement = 'MEASUREMENT',
 }
 

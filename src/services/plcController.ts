@@ -23,6 +23,8 @@ import {
     TFLunaMeasurementCommand,
     GPIOPinMode,
     IIndicatorLightAction,
+    IndicatorLightMode,
+    IIndicatorLightModeAction,
     ITfMeasurementAction,
     TfMeasurementState
 } from '../models/rpiPlcTypes';
@@ -46,6 +48,9 @@ export class PlcController {
     private indicatorLightRedPin: Line;
     private indicatorLightYellowPin: Line;
     private indicatorLightGreenPin: Line;
+
+    private indicatorLightMode: IndicatorLightMode = IndicatorLightMode.AUTO;
+    private indicatorLightModeBlinkState = 0;
 
     private plcDeviceConfig: IPlcDeviceConfig;
     private serialPort: SerialPort;
@@ -138,10 +143,22 @@ export class PlcController {
                 get: () => this.tfLunaStatus.sampleRate === 0 ? 0 : this.tfLunaStatus.measurement,
                 set: (value: any) => void this.setTFLunaSampleRate(!value ? 0 : this.plcDeviceConfig.tfLunaDevice.sampleRate)
             });
+
+            setInterval(async () => {
+                await this.indicatorLightModeHandler();
+            }, 500);
         }
         catch (ex) {
             this.server.log([ModuleName, 'error'], `Error during init: ${ex.message}`);
         }
+    }
+
+    public getIndicatorLightMode(): IndicatorLightMode {
+        return this.indicatorLightMode;
+    }
+
+    public setIndicatorLightMode(mode: IndicatorLightMode): void {
+        this.indicatorLightMode = mode;
     }
 
     public getDeviceValue(deviceId: string): any {
@@ -178,21 +195,90 @@ export class PlcController {
         await this.writeTFLunaCommand(Buffer.from(TFLunaMeasurementPrefix.concat([0x00])));
     }
 
-    public async indicatorLight(lightAction: IIndicatorLightAction): Promise<any> {
+    public async indicatorLightControl(lightAction: IIndicatorLightAction): Promise<any> {
         let status = false;
 
-        if (this.gpioAvailable) {
-            this.indicatorLightRedPin.setValue(lightAction.ledRedState);
-            this.indicatorLightYellowPin.setValue(lightAction.ledYellowState);
-            this.indicatorLightGreenPin.setValue(lightAction.ledGreenState);
+        try {
+            if (this.gpioAvailable) {
+                this.indicatorLightRedPin.setValue(lightAction.ledRedState);
+                this.indicatorLightYellowPin.setValue(lightAction.ledYellowState);
+                this.indicatorLightGreenPin.setValue(lightAction.ledGreenState);
 
-            status = true;
+                status = true;
+            }
+            else {
+                this.server.log([ModuleName, 'info'], `GPIO access is unavailable`);
+            }
         }
-        else {
-            this.server.log([ModuleName, 'info'], `GPIO access is unavailable`);
+        catch (ex) {
+            this.server.log([ModuleName, 'error'], `Error during indicator light control: ${ex.message}`);
         }
 
         return status;
+    }
+
+    public async indicatorLightModeControl(lightModeAction: IIndicatorLightModeAction): Promise<any> {
+        let status = false;
+
+        try {
+            if (this.gpioAvailable) {
+                this.indicatorLightMode = lightModeAction.mode;
+                status = true;
+            }
+            else {
+                this.server.log([ModuleName, 'info'], `GPIO access is unavailable`);
+            }
+        }
+        catch (ex) {
+            this.server.log([ModuleName, 'error'], `Error during indicator mode control: ${ex.message}`);
+        }
+
+        return status;
+    }
+
+    private async indicatorLightModeHandler(): Promise<void> {
+        this.indicatorLightModeBlinkState = this.indicatorLightModeBlinkState ? 0 : 1;
+
+        switch (this.indicatorLightMode) {
+            case IndicatorLightMode.AUTO:
+                if (this.tfLunaStatus.measurement < 60) {
+                    this.indicatorLightRedPin.setValue(1);
+                    this.indicatorLightYellowPin.setValue(0);
+                    this.indicatorLightGreenPin.setValue(0);
+                }
+                else if (this.tfLunaStatus.measurement > 70) {
+                    this.indicatorLightRedPin.setValue(0);
+                    this.indicatorLightYellowPin.setValue(0);
+                    this.indicatorLightGreenPin.setValue(1);
+                }
+                else {
+                    this.indicatorLightRedPin.setValue(0);
+                    this.indicatorLightYellowPin.setValue(1);
+                    this.indicatorLightGreenPin.setValue(0);
+                }
+
+                break;
+
+            case IndicatorLightMode.GREEN:
+                this.indicatorLightRedPin.setValue(0);
+                this.indicatorLightYellowPin.setValue(0);
+                this.indicatorLightGreenPin.setValue(1);
+                break;
+
+            case IndicatorLightMode.YELLOWFLASHING:
+                this.indicatorLightRedPin.setValue(0);
+                this.indicatorLightYellowPin.setValue(this.indicatorLightModeBlinkState ? 1 : 0);
+                this.indicatorLightGreenPin.setValue(0);
+                break;
+
+            case IndicatorLightMode.REDFLASHING:
+                this.indicatorLightRedPin.setValue(this.indicatorLightModeBlinkState ? 1 : 0);
+                this.indicatorLightYellowPin.setValue(0);
+                this.indicatorLightGreenPin.setValue(0);
+                break;
+
+            default:
+        }
     }
 
     private portError(err: Error): void {

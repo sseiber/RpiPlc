@@ -57,7 +57,7 @@ const composeOptions: ComposeOptions = {
 async function start() {
     try {
         const storageRoot = process.env.RPIPLC_SERVICE_STORAGE
-            ? pathResolve(__dirname, '..', process.env.RPIPLC_SERVICE_STORAGE)
+            ? pathResolve(process.env.RPIPLC_SERVICE_STORAGE)
             : '/rpi-plc/data';
 
         const plcConfig = fse.readJsonSync(pathResolve(storageRoot, 'plcConfig.json'));
