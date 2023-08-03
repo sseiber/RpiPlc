@@ -154,8 +154,8 @@
                 "inputArguments": [
                     {
                         "name": "control",
-                        "description": "Control action, true = activate, false = deactivate",
-                        "dataTypeName": "Boolean"
+                        "description": "Control action STOP, START, or SINGLE",
+                        "dataTypeName": "String"
                     }
                 ],
                 "outputArguments": [
