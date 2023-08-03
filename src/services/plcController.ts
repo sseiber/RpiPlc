@@ -26,7 +26,7 @@ import {
     IndicatorLightMode,
     IIndicatorLightModeAction,
     ITfMeasurementAction,
-    TfMeasurementState
+    TfMeasurementCommand
 } from '../models/rpiPlcTypes';
 import { SerialPort } from 'serialport';
 import { TFLunaResponseParser } from './tfLunaResponseParser';
@@ -141,7 +141,25 @@ export class PlcController {
             // this is mixing data plane (get: measurement value) and control plane (set: control the device sampling on/off)
             this.deviceMap.set(plcConfigDeviceNames[3], {
                 get: () => this.tfLunaStatus.sampleRate === 0 ? 0 : this.tfLunaStatus.measurement,
-                set: (value: any) => void this.setTFLunaSampleRate(!value ? 0 : this.plcDeviceConfig.tfLunaDevice.sampleRate)
+                set: (value: any) => {
+                    switch (value) {
+                        case TfMeasurementCommand.Start:
+                            void this.setTFLunaSampleRate(this.plcDeviceConfig.tfLunaDevice.sampleRate);
+                            break;
+
+                        case TfMeasurementCommand.Stop:
+                            void this.setTFLunaSampleRate(0);
+                            break;
+
+                        case TfMeasurementCommand.Single:
+                            void this.getTFLunaMeasurement();
+                            break;
+
+                        default:
+                            this.server.log([ModuleName, 'error'], `Invalid tfLunaMeasurementCommand: ${value}`);
+                            break;
+                    }
+                }
             });
 
             setInterval(async () => {
@@ -175,24 +193,34 @@ export class PlcController {
         }
     }
 
-    public async tfMeasurement(tfMeasurementaction: ITfMeasurementAction): Promise<void> {
+    public async tfMeasurementControl(tfMeasurementaction: ITfMeasurementAction): Promise<void> {
         this.server.log([ModuleName, 'info'], `TFLuna measurement`);
 
         try {
-            if (tfMeasurementaction.measurementState === TfMeasurementState.Start) {
-                await this.setTFLunaSampleRate(this.plcDeviceConfig.tfLunaDevice.sampleRate);
-            }
-            else {
-                await this.setTFLunaSampleRate(0);
+            switch (tfMeasurementaction.measurementState) {
+                case TfMeasurementCommand.Start:
+                    // await this.setTFLunaSampleRate(this.plcDeviceConfig.tfLunaDevice.sampleRate);
+                    setInterval(async () => {
+                        await this.getTFLunaMeasurement();
+                    }, 500);
+                    break;
+
+                case TfMeasurementCommand.Stop:
+                    await this.setTFLunaSampleRate(0);
+                    break;
+
+                case TfMeasurementCommand.Single:
+                    await this.getTFLunaMeasurement();
+                    break;
+
+                default:
+                    this.server.log([ModuleName, 'info'], `TFLuna measurement command not recognized`);
+                    break;
             }
         }
         catch (ex) {
             this.server.log([ModuleName, 'error'], `Error during TFLuna measurement control: ${ex.message}`);
         }
-    }
-
-    public async getTFLunaMeasurement(): Promise<void> {
-        await this.writeTFLunaCommand(Buffer.from(TFLunaMeasurementPrefix.concat([0x00])));
     }
 
     public async indicatorLightControl(lightAction: IIndicatorLightAction): Promise<any> {
@@ -410,6 +438,12 @@ export class PlcController {
         this.server.log([ModuleName, 'info'], `Get version request`);
 
         await this.writeTFLunaCommand(Buffer.from(TFLunaGetVersionPrefix.concat([0x00])));
+    }
+
+    private async getTFLunaMeasurement(): Promise<void> {
+        if (this.tfLunaStatus.sampleRate === 0) {
+            await this.writeTFLunaCommand(Buffer.from(TFLunaMeasurementPrefix.concat([0x00])));
+        }
     }
 
     private async writeTFLunaCommand(writeData: Buffer): Promise<void> {

@@ -22,7 +22,7 @@
             ],
             "env": {
                 "PORT": "9092",
-                "RPIPLC_SERVICE_STORAGE": "../setup/deployment",
+                "RPIPLC_SERVICE_STORAGE": "./setup/deployment",
                 "DEBUG": "NONE"
             }
         }

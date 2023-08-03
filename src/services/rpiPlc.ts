@@ -63,7 +63,7 @@ export class RpiPlcService {
                     break;
 
                 case RpiPlcRequestAction.TfMeasurement:
-                    await this.plcController.tfMeasurement(controlRequest.data);
+                    await this.plcController.tfMeasurementControl(controlRequest.data);
                     response.message = `Plc distance measurement started...`;
                     break;
 
