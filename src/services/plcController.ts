@@ -274,7 +274,7 @@ export class PlcController {
                     this.indicatorLightYellowPin.setValue(0);
                     this.indicatorLightGreenPin.setValue(0);
                 }
-                else if (this.tfLunaStatus.measurement > 70) {
+                else if (this.tfLunaStatus.measurement > 80) {
                     this.indicatorLightRedPin.setValue(0);
                     this.indicatorLightYellowPin.setValue(0);
                     this.indicatorLightGreenPin.setValue(1);
