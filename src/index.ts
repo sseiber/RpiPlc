@@ -47,12 +47,12 @@ const composeOptions: ComposeOptions = {
     }
 };
 
-// process.on('unhandledRejection', (e: any) => {
-/* eslint-disable */
-//     console.log(['startup', 'error'], `Excepction on startup... ${e.message}`);
-//     console.log(['startup', 'error'], e.stack);
-/* eslint-enable */
-// });
+process.on('unhandledRejection', (e: any) => {
+    /* eslint-disable */
+    console.log(['startup', 'error'], `Excepction on startup... ${e.message}`);
+    console.log(['startup', 'error'], e.stack);
+    /* eslint-enable */
+});
 
 async function start() {
     try {
