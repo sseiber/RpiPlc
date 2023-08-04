@@ -56,6 +56,7 @@ export class PlcController {
     private serialPort: SerialPort;
     private tfLunaResponseParser: TFLunaResponseParser;
     private tfLunaStatus: ITFLunaStatus;
+    private tfLunaMeasurementTimer: NodeJS.Timeout;
     private deviceMap: Map<string, PlcDataAccessor> = new Map<string, PlcDataAccessor>();
 
     constructor(server: Server, plcDeviceConfig: IPlcDeviceConfig) {
@@ -69,6 +70,7 @@ export class PlcController {
             version: '0.0.0',
             measurement: 0
         };
+        this.tfLunaMeasurementTimer = null;
     }
 
     public async init(): Promise<void> {
@@ -200,13 +202,12 @@ export class PlcController {
             switch (tfMeasurementaction.measurementState) {
                 case TfMeasurementCommand.Start:
                     // await this.setTFLunaSampleRate(this.plcDeviceConfig.tfLunaDevice.sampleRate);
-                    setInterval(async () => {
-                        await this.getTFLunaMeasurement();
-                    }, 500);
+                    this.startTFLunaMeasurement();
                     break;
 
                 case TfMeasurementCommand.Stop:
-                    await this.setTFLunaSampleRate(0);
+                    // await this.setTFLunaSampleRate(0);
+                    this.stopTFLunaMeasurement();
                     break;
 
                 case TfMeasurementCommand.Single:
@@ -306,6 +307,19 @@ export class PlcController {
                 break;
 
             default:
+        }
+    }
+
+    private startTFLunaMeasurement(): void {
+        this.tfLunaMeasurementTimer = setInterval(async () => {
+            await this.getTFLunaMeasurement();
+        }, 500);
+    }
+
+    private stopTFLunaMeasurement(): void {
+        if (this.tfLunaMeasurementTimer) {
+            clearInterval(this.tfLunaMeasurementTimer);
+            this.tfLunaMeasurementTimer = null;
         }
     }
 
@@ -447,24 +461,29 @@ export class PlcController {
     }
 
     private async writeTFLunaCommand(writeData: Buffer): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this.serialPort.write(writeData, async (writeError) => {
-                if (writeError) {
-                    this.server.log([ModuleName, 'error'], `Serial port write error: ${writeError.message}`);
+        try {
+            await new Promise<void>((resolve, reject) => {
+                this.serialPort.write(writeData, async (writeError) => {
+                    if (writeError) {
+                        this.server.log([ModuleName, 'error'], `Serial port write error: ${writeError.message}`);
 
-                    return reject(writeError);
-                }
-
-                this.serialPort.drain(async (drainError) => {
-                    if (drainError) {
-                        this.server.log([ModuleName, 'error'], `Serial port drain error: ${drainError.message}`);
-
-                        return reject(drainError);
+                        return reject(writeError);
                     }
 
-                    return resolve();
+                    this.serialPort.drain(async (drainError) => {
+                        if (drainError) {
+                            this.server.log([ModuleName, 'error'], `Serial port drain error: ${drainError.message}`);
+
+                            return reject(drainError);
+                        }
+
+                        return resolve();
+                    });
                 });
             });
-        });
+        }
+        catch (ex) {
+            this.server.log([ModuleName, 'error'], `Serial port write error: ${ex.message}`);
+        }
     }
 }
