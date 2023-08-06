@@ -313,7 +313,7 @@ export class PlcController {
     private startTFLunaMeasurement(): void {
         this.tfLunaMeasurementTimer = setInterval(async () => {
             await this.getTFLunaMeasurement();
-        }, 500);
+        }, 1000 / this.plcDeviceConfig.tfLunaDevice.sampleRate);
     }
 
     private stopTFLunaMeasurement(): void {
