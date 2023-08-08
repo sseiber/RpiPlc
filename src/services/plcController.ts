@@ -74,8 +74,8 @@ export class PlcController {
     }
 
     public async init(): Promise<void> {
-        this.server.log([ModuleName, 'info'], `${ModuleName} initialzation plcId: ${this.plcId} `);
-        this.server.log([ModuleName, 'info'], `${ModuleName} initialzation: libgpiod version: ${version()}, status: ${available() ? 'available' : 'unavailable'}`);
+        this.server.log([ModuleName, 'info'], `${ModuleName} initialization`);
+        this.server.log([ModuleName, 'info'], `${ModuleName} initialization: libgpiod version: ${version()}, status: ${available() ? 'available' : 'unavailable'}`);
 
         try {
             this.gpioAvailable = available();

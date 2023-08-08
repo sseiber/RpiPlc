@@ -19,7 +19,7 @@ export class RpiPlcService {
     private opcuaServer: RpiPlcOpcuaServer;
 
     public async init(): Promise<void> {
-        this.server.log([ModuleName, 'info'], `RpiPlcService initialzation`);
+        this.server.log([ModuleName, 'info'], `RpiPlcService initialization`);
 
         try {
             this.plcController = await this.initializePlcController();
