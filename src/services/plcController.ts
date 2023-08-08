@@ -41,8 +41,6 @@ class PlcDataAccessor {
 
 export class PlcController {
     private server: Server;
-    private plcId: number;
-
     private gpioAvailable: boolean;
     private bcm2835: Chip;
     private indicatorLightRedPin: Line;
