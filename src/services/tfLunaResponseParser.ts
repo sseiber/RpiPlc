@@ -161,13 +161,16 @@ export class TFLunaResponseParser extends Transform {
     private parseTriggerResponse(commandId: number, data: Buffer): ITFLunaMeasureResponse {
         const amp = data.readUInt16LE(4);
         const distCm = (amp <= 100 || amp === 65535) ? 0 : data.readUInt16LE(2);
-        const tempC = data.readUInt16LE(6);
+        const tempCt = data.readUInt16LE(6);
+        const tempC = tempCt ? (tempCt / 8) - 256 : 0;
+
+        this.tfLog([ModuleName, 'debug'], `trig: distCm ${distCm}, amp ${amp}, tempC ${tempC}`);
 
         return {
             commandId,
             distCm,
             amp,
-            tempC: `${(tempC / 8) - 256}C`
+            tempC: tempC.toString()
         };
     }
 

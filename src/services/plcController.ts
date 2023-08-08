@@ -49,7 +49,7 @@ export class PlcController {
     private indicatorLightYellowPin: Line;
     private indicatorLightGreenPin: Line;
 
-    private indicatorLightMode: IndicatorLightMode = IndicatorLightMode.AUTO;
+    private indicatorLightMode: IndicatorLightMode = IndicatorLightMode.GREEN;
     private indicatorLightModeBlinkState = 0;
 
     private plcDeviceConfig: IPlcDeviceConfig;
@@ -146,10 +146,12 @@ export class PlcController {
                 set: (value: any) => {
                     switch (value) {
                         case TfMeasurementCommand.Start:
+                            this.indicatorLightMode = IndicatorLightMode.AUTO;
                             void this.setTFLunaSampleRate(this.plcDeviceConfig.tfLunaDevice.sampleRate);
                             break;
 
                         case TfMeasurementCommand.Stop:
+                            this.indicatorLightMode = IndicatorLightMode.GREEN;
                             void this.setTFLunaSampleRate(0);
                             break;
 
