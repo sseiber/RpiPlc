@@ -47,7 +47,8 @@ export const enum IndicatorLightMode {
     AUTO = 'AUTO',
     GREEN = 'GREEN',
     YELLOWFLASHING = 'YELLOWFLASHING',
-    REDFLASHING = 'REDFLASHING'
+    REDFLASHING = 'REDFLASHING',
+    MANUAL = 'MANUAL'
 }
 
 export interface IIndicatorLightModeAction {

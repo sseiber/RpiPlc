@@ -229,6 +229,8 @@ export class PlcController {
 
         try {
             if (this.gpioAvailable) {
+                this.indicatorLightMode = IndicatorLightMode.MANUAL;
+
                 this.indicatorLightRedPin.setValue(lightAction.ledRedState);
                 this.indicatorLightYellowPin.setValue(lightAction.ledYellowState);
                 this.indicatorLightGreenPin.setValue(lightAction.ledGreenState);
@@ -306,7 +308,11 @@ export class PlcController {
                 this.indicatorLightGreenPin.setValue(0);
                 break;
 
+            case IndicatorLightMode.MANUAL:
+                break;
+
             default:
+                this.server.log([ModuleName, 'warning'], `Unknown indicator mode: ${this.indicatorLightMode}`);
         }
     }
 
