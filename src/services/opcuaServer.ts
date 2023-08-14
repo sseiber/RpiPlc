@@ -6,6 +6,7 @@ import {
     DataType,
     DataValue,
     Namespace,
+    OPCUACertificateManager,
     OPCUAServer,
     SessionContext,
     StatusCodes,
@@ -13,6 +14,8 @@ import {
     UAVariable,
     Variant
 } from 'node-opcua';
+import { join as pathJoin } from 'path';
+import * as fse from 'fs-extra';
 import {
     IOpcAssetInfo,
     IOpcVariable,
@@ -22,6 +25,7 @@ import {
     IMethodInputArgumentConfig
 } from '../models/opcuaServerTypes';
 import { PlcController } from './plcController';
+import { sleep } from '../utils';
 
 const ModuleName = 'RpiPlcOpcuaServer';
 
@@ -48,7 +52,40 @@ export class RpiPlcOpcuaServer {
         this.server.log([ModuleName, 'info'], `Instantiating opcua server`);
 
         try {
-            this.opcuaServer = new OPCUAServer(this.server.settings.app.rpiPlc.serverConfig);
+            const opcuaServerOptions = this.server.settings.app.rpiPlc.serverConfig;
+
+            const configRoot = pathJoin(this.server.settings.app.rpiPlc.storageRoot, '.config');
+            fse.ensureDirSync(configRoot);
+
+            const pkiRoot = pathJoin(configRoot, 'PKI');
+
+            const serverCertificateManager = new OPCUACertificateManager({
+                automaticallyAcceptUnknownCertificate: true,
+                rootFolder: pkiRoot
+            });
+
+            await serverCertificateManager.initialize();
+
+            const certificateFile = pathJoin(pkiRoot, 'certificate.pem');
+
+            if (!fse.pathExistsSync(certificateFile)) {
+                await serverCertificateManager.createSelfSignedCertificate({
+                    applicationUri: opcuaServerOptions.serverInfo.applicationUri,
+                    dns: [opcuaServerOptions.hostname],
+                    // ip: await getIpAddresses(),
+                    outputFile: certificateFile,
+                    subject: `/CN=${opcuaServerOptions.serverInfo.applicationName}/O=ScottSHome/L=Medina/C=US`, startDate: new Date(),
+                    validity: 365 * 10
+                });
+
+                await sleep(1000);
+            }
+
+            this.opcuaServer = new OPCUAServer({
+                ...opcuaServerOptions,
+                serverCertificateManager,
+                certificateFile
+            });
 
             await this.opcuaServer.initialize();
 
@@ -225,9 +262,11 @@ export class RpiPlcOpcuaServer {
         };
 
         try {
-            this.plcController.setDeviceValue(`indicatorLightDeviceRed`, inputArguments[0].value);
-            this.plcController.setDeviceValue(`indicatorLightDeviceYellow`, inputArguments[1].value);
-            this.plcController.setDeviceValue(`indicatorLightDeviceGreen`, inputArguments[2].value);
+            await this.plcController.indicatorLightControl({
+                ledRedState: inputArguments[0].value,
+                ledYellowState: inputArguments[1].value,
+                ledGreenState: inputArguments[2].value
+            });
         }
         catch (ex) {
             this.server.log([ModuleName, 'error'], `Error in controlIndicatorLights: ${ex.message}`);

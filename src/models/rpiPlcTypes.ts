@@ -2,6 +2,7 @@ import { OPCUAServerOptions } from 'node-opcua';
 import { IAssetRootConfig } from './opcuaServerTypes';
 
 export interface IRpiPlcConfig {
+    storageRoot: string;
     plcDeviceConfig: IPlcDeviceConfig;
     serverConfig: OPCUAServerOptions;
     assetRootConfig: IAssetRootConfig;

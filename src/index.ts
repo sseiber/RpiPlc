@@ -63,7 +63,7 @@ async function start() {
         const plcConfig = fse.readJsonSync(pathResolve(storageRoot, 'plcConfig.json'));
         const opcuaServerConfig = fse.readJSONSync(pathResolve(storageRoot, 'opcuaServerConfig.json'));
 
-        const server = await compose(manifest(plcConfig, opcuaServerConfig.serverConfig, opcuaServerConfig.assetRootConfig), composeOptions);
+        const server = await compose(manifest(storageRoot, plcConfig, opcuaServerConfig.serverConfig, opcuaServerConfig.assetRootConfig), composeOptions);
 
         const stopServer = async () => {
             server.log(['shutdown', 'info'], '☮︎ Stopping hapi server');
