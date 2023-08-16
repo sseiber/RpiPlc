@@ -59,18 +59,22 @@ export class RpiPlcOpcuaServer {
             const configRoot = pathJoin(this.server.settings.app.rpiPlc.storageRoot, '.config');
             fse.ensureDirSync(configRoot);
 
-            const pkiRoot = pathJoin(configRoot, 'PKI');
+            // const pkiRoot = pathJoin(configRoot, 'PKI');
 
-            this.serverCertificateManager = new OPCUACertificateManager({
-                automaticallyAcceptUnknownCertificate: true,
-                rootFolder: pkiRoot
+            // this.serverCertificateManager = new OPCUACertificateManager({
+            //     automaticallyAcceptUnknownCertificate: true,
+            //     rootFolder: pkiRoot
+            // });
+
+            // await this.serverCertificateManager.initialize();
+
+            // const opcuaServerOptions = await this.createServerSelfSignedCertificate(pathJoin(pkiRoot, 'certificate.pem'));
+
+            this.opcuaServer = new OPCUAServer({
+                ...this.server.settings.app.rpiPlc.serverConfig,
+                certificateFile: pathJoin(this.server.settings.app.rpiPlc.storageRoot, 'rpi-plc.crt'),
+                privateKeyFile: pathJoin(this.server.settings.app.rpiPlc.storageRoot, 'rpi-plc.key')
             });
-
-            await this.serverCertificateManager.initialize();
-
-            const opcuaServerOptions = await this.createServerSelfSignedCertificate(pathJoin(pkiRoot, 'certificate.pem'));
-
-            this.opcuaServer = new OPCUAServer(opcuaServerOptions);
 
             await this.opcuaServer.initialize();
 
@@ -103,12 +107,13 @@ export class RpiPlcOpcuaServer {
         return endpoint;
     }
 
+    // @ts-ignore
     private async createServerSelfSignedCertificate(selfSignedCertificatePath: string): Promise<OPCUAServerOptions> {
         this.server.log([ModuleName, 'info'], `createServerSelfSignedCertificate`);
 
         const opcuaServerOptions = {
             ...this.server.settings.app.rpiPlc.serverConfig,
-            serverCertificateManager: this.serverCertificateManager,
+            // serverCertificateManager: this.serverCertificateManager,
             certificateFile: selfSignedCertificatePath
         };
 
