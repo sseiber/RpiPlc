@@ -8,11 +8,15 @@ import {
     Namespace,
     OPCUACertificateManager,
     OPCUAServer,
+    OPCUAServerOptions,
     SessionContext,
     StatusCodes,
     UAObject,
     UAVariable,
-    Variant
+    Variant,
+    coerceLocalizedText,
+    getHostname,
+    makeApplicationUrn
 } from 'node-opcua';
 import { join as pathJoin } from 'path';
 import * as fse from 'fs-extra';
@@ -25,12 +29,12 @@ import {
     IMethodInputArgumentConfig
 } from '../models/opcuaServerTypes';
 import { PlcController } from './plcController';
-import { sleep } from '../utils';
 
 const ModuleName = 'RpiPlcOpcuaServer';
 
 export class RpiPlcOpcuaServer {
     private server: Server;
+    private serverCertificateManager: OPCUACertificateManager;
     private opcuaServer: OPCUAServer;
     private addressSpace: AddressSpace;
     private localServerNamespace: Namespace;
@@ -52,40 +56,21 @@ export class RpiPlcOpcuaServer {
         this.server.log([ModuleName, 'info'], `Instantiating opcua server`);
 
         try {
-            const opcuaServerOptions = this.server.settings.app.rpiPlc.serverConfig;
-
             const configRoot = pathJoin(this.server.settings.app.rpiPlc.storageRoot, '.config');
             fse.ensureDirSync(configRoot);
 
             const pkiRoot = pathJoin(configRoot, 'PKI');
 
-            const serverCertificateManager = new OPCUACertificateManager({
+            this.serverCertificateManager = new OPCUACertificateManager({
                 automaticallyAcceptUnknownCertificate: true,
                 rootFolder: pkiRoot
             });
 
-            await serverCertificateManager.initialize();
+            await this.serverCertificateManager.initialize();
 
-            const certificateFile = pathJoin(pkiRoot, 'certificate.pem');
+            const opcuaServerOptions = await this.createServerSelfSignedCertificate(pathJoin(pkiRoot, 'certificate.pem'));
 
-            if (!fse.pathExistsSync(certificateFile)) {
-                await serverCertificateManager.createSelfSignedCertificate({
-                    applicationUri: opcuaServerOptions.serverInfo.applicationUri,
-                    dns: [opcuaServerOptions.hostname],
-                    // ip: await getIpAddresses(),
-                    outputFile: certificateFile,
-                    subject: `/CN=${opcuaServerOptions.serverInfo.applicationName}/O=ScottSHome/L=Medina/C=US`, startDate: new Date(),
-                    validity: 365 * 10
-                });
-
-                await sleep(1000);
-            }
-
-            this.opcuaServer = new OPCUAServer({
-                ...opcuaServerOptions,
-                serverCertificateManager,
-                certificateFile
-            });
+            this.opcuaServer = new OPCUAServer(opcuaServerOptions);
 
             await this.opcuaServer.initialize();
 
@@ -116,6 +101,47 @@ export class RpiPlcOpcuaServer {
         }
 
         return endpoint;
+    }
+
+    private async createServerSelfSignedCertificate(selfSignedCertificatePath: string): Promise<OPCUAServerOptions> {
+        this.server.log([ModuleName, 'info'], `createServerSelfSignedCertificate`);
+
+        const opcuaServerOptions = {
+            ...this.server.settings.app.rpiPlc.serverConfig,
+            serverCertificateManager: this.serverCertificateManager,
+            certificateFile: selfSignedCertificatePath
+        };
+
+        const appName = coerceLocalizedText(opcuaServerOptions.serverInfo.applicationName).text;
+        opcuaServerOptions.serverInfo.applicationUri = makeApplicationUrn(getHostname(), appName);
+
+        try {
+            if (!fse.pathExistsSync(opcuaServerOptions.certificateFile)) {
+                this.server.log([ModuleName, 'info'], `Creating new certificate file:`);
+
+                const certFileRequest = {
+                    applicationUri: opcuaServerOptions.serverInfo.applicationUri,
+                    dns: [getHostname()],
+                    // ip: await getIpAddresses(),
+                    outputFile: selfSignedCertificatePath,
+                    subject: `/CN=${appName}/O=ScottSHome/L=Medina/C=US`,
+                    startDate: new Date(),
+                    validity: 365 * 10
+                };
+
+                this.server.log([ModuleName, 'info'], `Self-signed certificate file request params:\n${JSON.stringify(certFileRequest, null, 2)}\n`);
+
+                await this.serverCertificateManager.createSelfSignedCertificate(certFileRequest);
+            }
+            else {
+                this.server.log([ModuleName, 'info'], `Using existing certificate file at: ${opcuaServerOptions.certificateFile}`);
+            }
+        }
+        catch (ex) {
+            this.server.log([ModuleName, 'error'], `Error creating server self signed certificate: ${ex.message}`);
+        }
+
+        return opcuaServerOptions;
     }
 
     private async constructAddressSpace(): Promise<void> {

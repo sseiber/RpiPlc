@@ -17,7 +17,7 @@ spec:
           claimName: rpi-plc-pvc
       containers:
       - name: rpi-plc-server
-        image: iotccrscotts.azurecr.io/rpi-plc:1.0.35-arm64v8
+        image: iotccrscotts.azurecr.io/rpi-plc:1.0.33-arm64v8-debug
         env:
         - name: DEBUG
           value: NONE
@@ -49,3 +49,8 @@ spec:
     port: 4334
     targetPort: 4334
     nodePort: 30011
+  - name: debugger
+    protocol: TCP
+    port: 9229
+    targetPort: 9229
+    nodePort: 30020
