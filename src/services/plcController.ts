@@ -272,12 +272,12 @@ export class PlcController {
 
         switch (this.indicatorLightMode) {
             case IndicatorLightMode.AUTO:
-                if (this.tfLunaStatus.measurement < 60) {
+                if (this.tfLunaStatus.measurement < this.plcDeviceConfig.tfLunaDevice.dangerDistance) {
                     this.indicatorLightRedPin.setValue(1);
                     this.indicatorLightYellowPin.setValue(0);
                     this.indicatorLightGreenPin.setValue(0);
                 }
-                else if (this.tfLunaStatus.measurement > 80) {
+                else if (this.tfLunaStatus.measurement > this.plcDeviceConfig.tfLunaDevice.warningDistance) {
                     this.indicatorLightRedPin.setValue(0);
                     this.indicatorLightYellowPin.setValue(0);
                     this.indicatorLightGreenPin.setValue(1);

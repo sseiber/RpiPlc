@@ -23,6 +23,8 @@ export interface IPlcTfLunaDeviceConfig {
     serialPort: string;
     buadRate: number;
     sampleRate: number;
+    warningDistance: number;
+    dangerDistance: number;
     serialParserLog: boolean;
 }
 
