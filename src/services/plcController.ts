@@ -209,13 +209,11 @@ export class PlcController {
             switch (tfMeasurementaction) {
                 case TfMeasurementAction.Start:
                     // await this.setTFLunaSampleRate(this.plcDeviceConfig.tfLunaDevice.sampleRate);
-                    this.indicatorLightMode = IndicatorLightMode.AUTO;
                     this.startTFLunaMeasurement();
                     break;
 
                 case TfMeasurementAction.Stop:
                     // await this.setTFLunaSampleRate(0);
-                    this.indicatorLightMode = IndicatorLightMode.GREEN;
                     this.stopTFLunaMeasurement();
                     break;
 
@@ -326,12 +324,16 @@ export class PlcController {
     }
 
     private startTFLunaMeasurement(): void {
+        this.indicatorLightMode = IndicatorLightMode.AUTO;
+
         this.tfLunaMeasurementTimer = setInterval(async () => {
             await this.getTFLunaMeasurement();
         }, 1000 / this.plcDeviceConfig.tfLunaDevice.sampleRate);
     }
 
     private stopTFLunaMeasurement(): void {
+        this.indicatorLightMode = IndicatorLightMode.GREEN;
+
         if (this.tfLunaMeasurementTimer) {
             clearInterval(this.tfLunaMeasurementTimer);
             this.tfLunaMeasurementTimer = null;
