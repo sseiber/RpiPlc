@@ -155,7 +155,7 @@ export class PlcController {
                         await this.getTFLunaVersion();
 
                         this.deviceMap.set(plcDeviceConfigKey, {
-                            get: () => this.tfLunaStatus.sampleRate === 0 ? 0 : this.tfLunaStatus.measurement,
+                            get: () => this.tfLunaStatus.measurement,
                             set: (_value: any) => void {}
                         });
 
