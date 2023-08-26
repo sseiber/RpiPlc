@@ -147,6 +147,8 @@ export class PlcController {
 
                         // await this.restoreTFLunaSettings();
 
+                        await this.setTFLunaBaudRate();
+
                         // start with sampleRate === 0 to turn off sampling
                         await this.setTFLunaSampleRate(0);
 
@@ -446,7 +448,6 @@ export class PlcController {
         await this.writeTFLunaCommand(Buffer.from(TFLunaSaveCurrentSettingsPrefix.concat([0x00])));
     }
 
-    // @ts-ignore
     private async setTFLunaBaudRate(baudRate = 115200): Promise<void> {
         this.server.log([ModuleName, 'info'], `Set baud rate request with value: ${baudRate}`);
 

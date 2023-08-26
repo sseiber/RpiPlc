@@ -45,7 +45,7 @@ export class TFLunaResponseParser extends Transform {
         let checksum;
         let tfResponse: any = {};
 
-        if (data.length >= 2) {
+        while (data.length >= 2) {
             if (Buffer.compare(data.subarray(0, 1), Buffer.from(TFLunaCommandHeader)) === 0) {
                 header = data.readUInt8(0);
                 length = data.readUInt8(1);
@@ -91,9 +91,6 @@ export class TFLunaResponseParser extends Transform {
 
             this.push(tfResponse);
             data = data.subarray(length);
-        }
-        else {
-            this.tfLog([ModuleName, 'debug'], `Parser data less than 2 bytes...`);
         }
 
         this.buffer = data;
