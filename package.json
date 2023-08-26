@@ -1,6 +1,6 @@
 {
     "name": "rpi-plc",
-    "version": "1.0.41",
+    "version": "1.0.42",
     "description": "Rpi sample plc and opcua server service",
     "main": "index.js",
     "scripts": {
