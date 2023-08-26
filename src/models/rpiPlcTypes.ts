@@ -59,14 +59,14 @@ export interface IIndicatorLightModeAction {
     mode: IndicatorLightMode;
 }
 
-export const enum TfMeasurementCommand {
+export const enum TfMeasurementAction {
     Start = 'START',
     Stop = 'STOP',
     Single = 'SINGLE'
 }
 
 export interface ITfMeasurementAction {
-    measurementState: TfMeasurementCommand;
+    action: TfMeasurementAction;
 }
 
 export enum RpiPlcRequestAction {

@@ -25,8 +25,7 @@ import {
     IIndicatorLightAction,
     IndicatorLightMode,
     IIndicatorLightModeAction,
-    ITfMeasurementAction,
-    TfMeasurementCommand
+    TfMeasurementAction
 } from '../models/rpiPlcTypes';
 import { SerialPort } from 'serialport';
 import { TFLunaResponseParser } from './tfLunaResponseParser';
@@ -155,32 +154,14 @@ export class PlcController {
 
                         await this.getTFLunaVersion();
 
-                        // TODO:
-                        // this is mixing data plane (get: measurement value) and control plane (set: control the device sampling on/off)
                         this.deviceMap.set(plcDeviceConfigKey, {
                             get: () => this.tfLunaStatus.sampleRate === 0 ? 0 : this.tfLunaStatus.measurement,
-                            set: (value: any) => {
-                                switch (value) {
-                                    case TfMeasurementCommand.Start:
-                                        this.indicatorLightMode = IndicatorLightMode.AUTO;
-                                        void this.setTFLunaSampleRate(this.plcDeviceConfig.tfLunaDevice.sampleRate);
-                                        break;
-
-                                    case TfMeasurementCommand.Stop:
-                                        this.indicatorLightMode = IndicatorLightMode.GREEN;
-                                        void this.setTFLunaSampleRate(0);
-                                        break;
-
-                                    case TfMeasurementCommand.Single:
-                                        void this.getTFLunaMeasurement();
-                                        break;
-
-                                    default:
-                                        this.server.log([ModuleName, 'error'], `Invalid tfLunaMeasurementCommand: ${value}`);
-                                        break;
-                                }
-                            }
+                            set: (_value: any) => void {}
                         });
+
+                        if (plcDeviceConfigValue.autoStart) {
+                            this.startTFLunaMeasurement();
+                        }
 
                         break;
 
@@ -221,27 +202,27 @@ export class PlcController {
         }
     }
 
-    public async tfMeasurementControl(tfMeasurementaction: ITfMeasurementAction): Promise<void> {
+    public async tfMeasurementControl(tfMeasurementaction: TfMeasurementAction): Promise<void> {
         this.server.log([ModuleName, 'info'], `TFLuna measurement`);
 
         try {
-            switch (tfMeasurementaction.measurementState) {
-                case TfMeasurementCommand.Start:
+            switch (tfMeasurementaction) {
+                case TfMeasurementAction.Start:
                     // await this.setTFLunaSampleRate(this.plcDeviceConfig.tfLunaDevice.sampleRate);
                     this.startTFLunaMeasurement();
                     break;
 
-                case TfMeasurementCommand.Stop:
+                case TfMeasurementAction.Stop:
                     // await this.setTFLunaSampleRate(0);
                     this.stopTFLunaMeasurement();
                     break;
 
-                case TfMeasurementCommand.Single:
+                case TfMeasurementAction.Single:
                     await this.getTFLunaMeasurement();
                     break;
 
                 default:
-                    this.server.log([ModuleName, 'info'], `TFLuna measurement command not recognized`);
+                    this.server.log([ModuleName, 'info'], `TFLuna measurement action not recognized: ${tfMeasurementaction}`);
                     break;
             }
         }
