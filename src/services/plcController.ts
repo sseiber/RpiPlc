@@ -417,7 +417,8 @@ export class PlcController {
 
         this.tfLunaResponseParser = port.pipe(new TFLunaResponseParser({
             logEnabled: this.plcDeviceConfig.tfLunaDevice.serialParserLog,
-            objectMode: true
+            objectMode: true,
+            highWaterMark: 1000
         }));
         this.tfLunaResponseParser.on('data', this.tfLunaResponseParserHandler.bind(this));
 

@@ -98,12 +98,16 @@ export class TFLunaResponseParser extends Transform {
 
         this.buffer = data;
 
+        this.tfLog([ModuleName, 'debug'], `In _transform: length: ${this.readableLength}, buffer: ${this.buffer.toString('hex')}`);
+
         return cb();
     }
 
     public _flush(cb: TransformCallback): void {
         this.push(this.buffer);
         this.buffer = Buffer.alloc(0);
+
+        this.tfLog([ModuleName, 'debug'], `In _flush: length: ${this.readableLength}, buffer: ${this.buffer.toString('hex')}`);
 
         return cb();
     }
