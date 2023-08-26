@@ -85,84 +85,110 @@ export class PlcController {
 
             this.server.log([ModuleName, 'info'], `Initializing plc controller GPIO pins`);
 
-            const plcConfigDeviceNames = Object.keys(this.plcDeviceConfig);
+            for (const [plcDeviceConfigKey, plcDeviceConfigValue] of Object.entries(this.plcDeviceConfig)) {
+                switch (plcDeviceConfigKey) {
+                    case 'indicatorLightDeviceRed':
+                        this.server.log([ModuleName, 'info'], `Initializing ${plcDeviceConfigKey} pin: ${plcDeviceConfigValue.pin}`);
 
-            this.indicatorLightRedPin = new Line(this.bcm2835, this.plcDeviceConfig.indicatorLightDeviceRed.pin);
-            if (this.plcDeviceConfig.indicatorLightDeviceRed.mode === GPIOPinMode.Output) {
-                this.indicatorLightRedPin.requestOutputMode();
-            }
-            else {
-                this.indicatorLightRedPin.requestInputMode();
-            }
+                        this.indicatorLightRedPin = new Line(this.bcm2835, plcDeviceConfigValue.pin);
+                        if (plcDeviceConfigValue.mode === GPIOPinMode.Output) {
+                            this.indicatorLightRedPin.requestOutputMode();
+                        }
+                        else {
+                            this.indicatorLightRedPin.requestInputMode();
+                        }
 
-            this.deviceMap.set(plcConfigDeviceNames[0], {
-                get: () => this.indicatorLightRedPin.getValue(),
-                set: (value: any) => this.indicatorLightRedPin.setValue(value)
-            });
+                        this.deviceMap.set(plcDeviceConfigKey, {
+                            get: () => this.indicatorLightRedPin.getValue(),
+                            set: (value: any) => this.indicatorLightRedPin.setValue(value)
+                        });
 
-            this.indicatorLightYellowPin = new Line(this.bcm2835, this.plcDeviceConfig.indicatorLightDeviceYellow.pin);
-            if (this.plcDeviceConfig.indicatorLightDeviceYellow.mode === GPIOPinMode.Output) {
-                this.indicatorLightYellowPin.requestOutputMode();
-            }
-            else {
-                this.indicatorLightYellowPin.requestInputMode();
-            }
+                        break;
 
-            this.deviceMap.set(plcConfigDeviceNames[1], {
-                get: () => this.indicatorLightYellowPin.getValue(),
-                set: (value: any) => this.indicatorLightYellowPin.setValue(value)
-            });
+                    case 'indicatorLightDeviceYellow':
+                        this.server.log([ModuleName, 'info'], `Initializing ${plcDeviceConfigKey} pin: ${plcDeviceConfigValue.pin}`);
 
-            this.indicatorLightGreenPin = new Line(this.bcm2835, this.plcDeviceConfig.indicatorLightDeviceGreen.pin);
-            if (this.plcDeviceConfig.indicatorLightDeviceGreen.mode === GPIOPinMode.Output) {
-                this.indicatorLightGreenPin.requestOutputMode();
-            }
-            else {
-                this.indicatorLightGreenPin.requestInputMode();
-            }
+                        this.indicatorLightYellowPin = new Line(this.bcm2835, plcDeviceConfigValue.pin);
+                        if (plcDeviceConfigValue.mode === GPIOPinMode.Output) {
+                            this.indicatorLightYellowPin.requestOutputMode();
+                        }
+                        else {
+                            this.indicatorLightYellowPin.requestInputMode();
+                        }
 
-            this.deviceMap.set(plcConfigDeviceNames[2], {
-                get: () => this.indicatorLightGreenPin.getValue(),
-                set: (value: any) => this.indicatorLightGreenPin.setValue(value)
-            });
+                        this.deviceMap.set(plcDeviceConfigKey, {
+                            get: () => this.indicatorLightYellowPin.getValue(),
+                            set: (value: any) => this.indicatorLightYellowPin.setValue(value)
+                        });
 
-            this.serialPort = await this.openPort(this.plcDeviceConfig.tfLunaDevice.serialPort, this.plcDeviceConfig.tfLunaDevice.buadRate);
+                        break;
 
-            // await this.restoreTFLunaSettings();
+                    case 'indicatorLightDeviceGreen':
+                        this.server.log([ModuleName, 'info'], `Initializing ${plcDeviceConfigKey} pin: ${plcDeviceConfigValue.pin}`);
 
-            // start with sampleRate === 0 to turn off sampling
-            await this.setTFLunaSampleRate(0);
+                        this.indicatorLightGreenPin = new Line(this.bcm2835, plcDeviceConfigValue.pin);
+                        if (plcDeviceConfigValue.mode === GPIOPinMode.Output) {
+                            this.indicatorLightGreenPin.requestOutputMode();
+                        }
+                        else {
+                            this.indicatorLightGreenPin.requestInputMode();
+                        }
 
-            await this.saveTFLunaSettings();
+                        this.deviceMap.set(plcDeviceConfigKey, {
+                            get: () => this.indicatorLightGreenPin.getValue(),
+                            set: (value: any) => this.indicatorLightGreenPin.setValue(value)
+                        });
 
-            await this.getTFLunaVersion();
+                        break;
 
-            // TODO:
-            // this is mixing data plane (get: measurement value) and control plane (set: control the device sampling on/off)
-            this.deviceMap.set(plcConfigDeviceNames[3], {
-                get: () => this.tfLunaStatus.sampleRate === 0 ? 0 : this.tfLunaStatus.measurement,
-                set: (value: any) => {
-                    switch (value) {
-                        case TfMeasurementCommand.Start:
-                            this.indicatorLightMode = IndicatorLightMode.AUTO;
-                            void this.setTFLunaSampleRate(this.plcDeviceConfig.tfLunaDevice.sampleRate);
-                            break;
+                    case 'tfLunaDevice':
+                        this.server.log([ModuleName, 'info'], `Initializing tfLuna device serial port: ${plcDeviceConfigValue.serialPort}`);
 
-                        case TfMeasurementCommand.Stop:
-                            this.indicatorLightMode = IndicatorLightMode.GREEN;
-                            void this.setTFLunaSampleRate(0);
-                            break;
+                        this.serialPort = await this.openPort(this.plcDeviceConfig.tfLunaDevice.serialPort, this.plcDeviceConfig.tfLunaDevice.buadRate);
 
-                        case TfMeasurementCommand.Single:
-                            void this.getTFLunaMeasurement();
-                            break;
+                        // await this.restoreTFLunaSettings();
 
-                        default:
-                            this.server.log([ModuleName, 'error'], `Invalid tfLunaMeasurementCommand: ${value}`);
-                            break;
-                    }
+                        // start with sampleRate === 0 to turn off sampling
+                        await this.setTFLunaSampleRate(0);
+
+                        await this.saveTFLunaSettings();
+
+                        await this.getTFLunaVersion();
+
+                        // TODO:
+                        // this is mixing data plane (get: measurement value) and control plane (set: control the device sampling on/off)
+                        this.deviceMap.set(plcDeviceConfigKey, {
+                            get: () => this.tfLunaStatus.sampleRate === 0 ? 0 : this.tfLunaStatus.measurement,
+                            set: (value: any) => {
+                                switch (value) {
+                                    case TfMeasurementCommand.Start:
+                                        this.indicatorLightMode = IndicatorLightMode.AUTO;
+                                        void this.setTFLunaSampleRate(this.plcDeviceConfig.tfLunaDevice.sampleRate);
+                                        break;
+
+                                    case TfMeasurementCommand.Stop:
+                                        this.indicatorLightMode = IndicatorLightMode.GREEN;
+                                        void this.setTFLunaSampleRate(0);
+                                        break;
+
+                                    case TfMeasurementCommand.Single:
+                                        void this.getTFLunaMeasurement();
+                                        break;
+
+                                    default:
+                                        this.server.log([ModuleName, 'error'], `Invalid tfLunaMeasurementCommand: ${value}`);
+                                        break;
+                                }
+                            }
+                        });
+
+                        break;
+
+                    default:
+                        this.server.log([ModuleName, 'warning'], `Unknown plc device config: ${plcDeviceConfigKey}`);
+                        break;
                 }
-            });
+            }
 
             setInterval(async () => {
                 await this.indicatorLightModeHandler();

@@ -17,6 +17,7 @@
         "sampleRate": 2,
         "warningDistance": 80,
         "dangerDistance": 60,
+        "autoStart": true,
         "serialParserLog": false
     }
 }

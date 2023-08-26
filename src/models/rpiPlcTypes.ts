@@ -25,6 +25,7 @@ export interface IPlcTfLunaDeviceConfig {
     sampleRate: number;
     warningDistance: number;
     dangerDistance: number;
+    autoStart: boolean;
     serialParserLog: boolean;
 }
 
