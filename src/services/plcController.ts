@@ -209,11 +209,13 @@ export class PlcController {
             switch (tfMeasurementaction) {
                 case TfMeasurementAction.Start:
                     // await this.setTFLunaSampleRate(this.plcDeviceConfig.tfLunaDevice.sampleRate);
+                    this.indicatorLightMode = IndicatorLightMode.AUTO;
                     this.startTFLunaMeasurement();
                     break;
 
                 case TfMeasurementAction.Stop:
                     // await this.setTFLunaSampleRate(0);
+                    this.indicatorLightMode = IndicatorLightMode.GREEN;
                     this.stopTFLunaMeasurement();
                     break;
 
