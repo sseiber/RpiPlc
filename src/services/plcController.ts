@@ -25,7 +25,8 @@ import {
     IIndicatorLightAction,
     IndicatorLightMode,
     IIndicatorLightModeAction,
-    TfMeasurementAction
+    TfMeasurementAction,
+    ITfMeasurementAction
 } from '../models/rpiPlcTypes';
 import { SerialPort } from 'serialport';
 import { TFLunaResponseParser } from './tfLunaResponseParser';
@@ -53,7 +54,7 @@ export class PlcController {
     private serialPort: SerialPort;
     private tfLunaResponseParser: TFLunaResponseParser;
     private tfLunaStatus: ITFLunaStatus;
-    private tfLunaMeasurementTimer: NodeJS.Timeout;
+    // private tfLunaMeasurementTimer: NodeJS.Timeout;
     private deviceMap: Map<string, PlcDataAccessor> = new Map<string, PlcDataAccessor>();
 
     constructor(server: Server, plcDeviceConfig: IPlcDeviceConfig) {
@@ -67,7 +68,7 @@ export class PlcController {
             version: '0.0.0',
             measurement: 0
         };
-        this.tfLunaMeasurementTimer = null;
+        // this.tfLunaMeasurementTimer = null;
     }
 
     public async init(): Promise<void> {
@@ -162,7 +163,7 @@ export class PlcController {
                         });
 
                         if (plcDeviceConfigValue.autoStart) {
-                            this.startTFLunaMeasurement();
+                            await this.startTFLunaMeasurement();
                         }
 
                         break;
@@ -204,19 +205,17 @@ export class PlcController {
         }
     }
 
-    public async tfMeasurementControl(tfMeasurementaction: TfMeasurementAction): Promise<void> {
+    public async tfMeasurementControl(tfMeasurementaction: ITfMeasurementAction): Promise<void> {
         this.server.log([ModuleName, 'info'], `TFLuna measurement`);
 
         try {
-            switch (tfMeasurementaction) {
+            switch (tfMeasurementaction.action) {
                 case TfMeasurementAction.Start:
-                    // await this.setTFLunaSampleRate(this.plcDeviceConfig.tfLunaDevice.sampleRate);
-                    this.startTFLunaMeasurement();
+                    await this.startTFLunaMeasurement();
                     break;
 
                 case TfMeasurementAction.Stop:
-                    // await this.setTFLunaSampleRate(0);
-                    this.stopTFLunaMeasurement();
+                    await this.stopTFLunaMeasurement();
                     break;
 
                 case TfMeasurementAction.Single:
@@ -325,21 +324,25 @@ export class PlcController {
         }
     }
 
-    private startTFLunaMeasurement(): void {
+    private async startTFLunaMeasurement(): Promise<void> {
         this.indicatorLightMode = IndicatorLightMode.AUTO;
 
-        this.tfLunaMeasurementTimer = setInterval(async () => {
-            await this.getTFLunaMeasurement();
-        }, 1000 / this.plcDeviceConfig.tfLunaDevice.sampleRate);
+        await this.setTFLunaSampleRate(this.plcDeviceConfig.tfLunaDevice.sampleRate);
+
+        // this.tfLunaMeasurementTimer = setInterval(async () => {
+        //     await this.getTFLunaMeasurement();
+        // }, 1000 / this.plcDeviceConfig.tfLunaDevice.sampleRate);
     }
 
-    private stopTFLunaMeasurement(): void {
+    private async stopTFLunaMeasurement(): Promise<void> {
         this.indicatorLightMode = IndicatorLightMode.GREEN;
 
-        if (this.tfLunaMeasurementTimer) {
-            clearInterval(this.tfLunaMeasurementTimer);
-            this.tfLunaMeasurementTimer = null;
-        }
+        await this.setTFLunaSampleRate(0);
+
+        // if (this.tfLunaMeasurementTimer) {
+        //     clearInterval(this.tfLunaMeasurementTimer);
+        //     this.tfLunaMeasurementTimer = null;
+        // }
     }
 
     private portError(err: Error): void {

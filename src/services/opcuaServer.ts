@@ -359,7 +359,9 @@ export class RpiPlcOpcuaServer {
         };
 
         try {
-            await this.plcController.tfMeasurementControl(inputArguments[0].value);
+            await this.plcController.tfMeasurementControl({
+                action: inputArguments[0].value
+            });
         }
         catch (ex) {
             this.server.log([ModuleName, 'error'], `Error in controlDistanceSensor: ${ex.message}`);
