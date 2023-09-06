@@ -1,6 +1,6 @@
 {
     "name": "rpi-plc",
-    "version": "1.0.46",
+    "version": "1.0.47",
     "description": "Rpi sample plc and opcua server service",
     "main": "index.js",
     "scripts": {
@@ -28,7 +28,7 @@
         "fs-extra": "^11.1.1",
         "moment": "^2.29.4",
         "node-libgpiod": "0.3.0",
-        "node-opcua": "^2.108.0",
+        "node-opcua": "^2.112.0",
         "serialport": "^11.0.0",
         "spryly": "^3.0.2",
         "uuid": "^9.0.0"
