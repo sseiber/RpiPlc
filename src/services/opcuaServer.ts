@@ -11,6 +11,7 @@ import {
     OPCUAServerOptions,
     SessionContext,
     StatusCodes,
+    UAEventType,
     UAObject,
     UAVariable,
     Variant,
@@ -24,7 +25,7 @@ import {
     IOpcAssetInfo,
     IOpcVariable,
     IAssetConfig,
-    IAssetTag,
+    IAssetNode,
     IMethodConfig,
     IMethodInputArgumentConfig
 } from '../models/opcuaServerTypes';
@@ -38,7 +39,10 @@ export class RpiPlcOpcuaServer {
     private opcuaServer: OPCUAServer;
     private addressSpace: AddressSpace;
     private localServerNamespace: Namespace;
-    private rootAssetsFolder: UAObject;
+    private customLocationRoot: UAObject;
+    private assetsRoot: UAObject;
+    private eventTFLunaStartMeasurement: UAEventType;
+    private eventTFLunaStopMeasurement: UAEventType;
     private opcAssetMap: Map<string, IOpcAssetInfo> = new Map<string, IOpcAssetInfo>();
     private opcVariableMap: Map<string, IOpcVariable> = new Map<string, IOpcVariable>();
     private plcController: PlcController;
@@ -71,9 +75,9 @@ export class RpiPlcOpcuaServer {
             // const opcuaServerOptions = await this.createServerSelfSignedCertificate(pathJoin(pkiRoot, 'certificate.pem'));
 
             this.opcuaServer = new OPCUAServer({
-                ...this.server.settings.app.rpiPlc.serverConfig,
-                certificateFile: pathJoin(this.server.settings.app.rpiPlc.storageRoot, 'rpi-plc.crt'),
-                privateKeyFile: pathJoin(this.server.settings.app.rpiPlc.storageRoot, 'rpi-plc.key')
+                ...this.server.settings.app.rpiPlc.serverConfig
+                // certificateFile: pathJoin(this.server.settings.app.rpiPlc.storageRoot, 'rpi-plc.crt'), // use built-in auto-created cert functionality
+                // privateKeyFile: pathJoin(this.server.settings.app.rpiPlc.storageRoot, 'rpi-plc.key')
             });
 
             await this.opcuaServer.initialize();
@@ -154,9 +158,26 @@ export class RpiPlcOpcuaServer {
             this.addressSpace = this.opcuaServer.engine.addressSpace;
             this.localServerNamespace = this.addressSpace.getOwnNamespace();
 
-            this.rootAssetsFolder = this.localServerNamespace.addFolder(this.addressSpace.rootFolder.objects, {
+            this.eventTFLunaStartMeasurement = this.localServerNamespace.addEventType({
+                browseName: 'Event_TFLunaStartMeasurement'
+            });
+
+            this.eventTFLunaStopMeasurement = this.localServerNamespace.addEventType({
+                browseName: 'Event_TFLunaStopMeasurement'
+            });
+
+            this.customLocationRoot = this.localServerNamespace.addObject({
+                browseName: 'ScottSHome',
+                displayName: 'ScottSHome',
+                organizedBy: this.addressSpace.rootFolder.objects,
+                notifierOf: this.addressSpace.rootFolder.objects.server
+            });
+
+            this.assetsRoot = this.localServerNamespace.addObject({
                 browseName: this.server.settings.app.rpiPlc.assetRootConfig.rootFolderName,
-                displayName: this.server.settings.app.rpiPlc.assetRootConfig.rootFolderName
+                displayName: this.server.settings.app.rpiPlc.assetRootConfig.rootFolderName,
+                componentOf: this.customLocationRoot,
+                notifierOf: this.customLocationRoot
             });
 
             this.server.log([ModuleName, 'info'], `Processing server configuration...`);
@@ -175,26 +196,28 @@ export class RpiPlcOpcuaServer {
                 const assetVariablesMap: Map<string, IOpcVariable> = new Map<string, IOpcVariable>();
 
                 const opcAsset = this.localServerNamespace.addObject({
-                    organizedBy: this.rootAssetsFolder,
                     browseName: assetConfig.name,
-                    displayName: assetConfig.name
+                    displayName: assetConfig.name,
+                    componentOf: this.assetsRoot,
+                    eventSourceOf: this.assetsRoot,
+                    eventNotifier: 1
                 });
 
-                for (const tag of assetConfig.tags) {
+                for (const assetNode of assetConfig.nodes) {
                     const opcVariable: IOpcVariable = {
                         variable: undefined,
-                        sampleInterval: tag.sampleInterval || 0,
+                        sampleInterval: assetNode.sampleInterval || 0,
                         value: new DataValue({
                             value: new Variant({
-                                dataType: tag.dataTypeName,
-                                value: tag.value
+                                dataType: assetNode.dataTypeName,
+                                value: assetNode.value
                             })
                         })
                     };
 
-                    opcVariable.variable = await this.createAssetVariable(opcAsset, tag, opcVariable.value);
+                    opcVariable.variable = await this.createAssetVariable(opcAsset, assetNode, opcVariable.value);
 
-                    assetVariablesMap.set(tag.browseName, opcVariable);
+                    assetVariablesMap.set(assetNode.browseName, opcVariable);
                     this.opcVariableMap.set(opcVariable.variable.nodeId.value.toString(), opcVariable);
                 }
 
@@ -209,7 +232,7 @@ export class RpiPlcOpcuaServer {
             const methodConfigs: IMethodConfig[] = this.server.settings.app.rpiPlc.assetRootConfig.methods;
 
             for (const methodConfig of methodConfigs) {
-                const method = this.localServerNamespace.addMethod(this.rootAssetsFolder, {
+                const method = this.localServerNamespace.addMethod(this.assetsRoot, {
                     browseName: methodConfig.browseName,
                     displayName: methodConfig.displayName,
                     description: methodConfig.description,
@@ -252,18 +275,18 @@ export class RpiPlcOpcuaServer {
         }
     }
 
-    private async createAssetVariable(asset: UAObject, tag: IAssetTag, dataValue: DataValue): Promise<UAVariable> {
+    private async createAssetVariable(asset: UAObject, assetNode: IAssetNode, dataValue: DataValue): Promise<UAVariable> {
         let uaVariable: UAVariable;
 
         try {
             uaVariable = this.localServerNamespace.addVariable({
                 componentOf: asset,
-                browseName: tag.browseName,
-                displayName: tag.displayName,
-                description: tag.description,
-                dataType: tag.dataTypeName,
-                minimumSamplingInterval: tag.sampleInterval,
-                value: this.createDataAccessor(tag, dataValue)
+                browseName: assetNode.browseName,
+                displayName: assetNode.displayName,
+                description: assetNode.description,
+                dataType: assetNode.dataTypeName,
+                minimumSamplingInterval: assetNode.sampleInterval,
+                value: this.createDataAccessor(assetNode, dataValue)
             });
 
             this.addressSpace.installHistoricalDataNode(uaVariable);
@@ -362,6 +385,16 @@ export class RpiPlcOpcuaServer {
             await this.plcController.tfMeasurementControl({
                 action: inputArguments[0].value
             });
+
+            const opcAsset = this.opcAssetMap.get('DistanceSensor');
+            if (opcAsset) {
+                if (inputArguments[0].value === 'START') {
+                    opcAsset.asset.raiseEvent(this.eventTFLunaStartMeasurement, {});
+                }
+                else {
+                    opcAsset.asset.raiseEvent(this.eventTFLunaStopMeasurement, {});
+                }
+            }
         }
         catch (ex) {
             this.server.log([ModuleName, 'error'], `Error in controlDistanceSensor: ${ex.message}`);
@@ -374,10 +407,10 @@ export class RpiPlcOpcuaServer {
         return callMethodResult;
     }
 
-    private createDataAccessor(tag: IAssetTag, dataValue: DataValue): BindVariableOptionsVariation2 {
+    private createDataAccessor(assetNode: IAssetNode, dataValue: DataValue): BindVariableOptionsVariation2 {
         return {
             timestamped_get: (): DataValue => {
-                const deviceValue = this.plcController.getDeviceValue(tag.browseName);
+                const deviceValue = this.plcController.getDeviceValue(assetNode.browseName);
 
                 dataValue.value.value = deviceValue;
                 dataValue.sourceTimestamp = new Date();
@@ -385,11 +418,11 @@ export class RpiPlcOpcuaServer {
                 return dataValue;
             },
             timestamped_set: async (newDataValue: DataValue): Promise<StatusCodes> => {
-                if (newDataValue.value.dataType !== this.getDataTypeEnumFromString(tag.dataTypeName)) {
+                if (newDataValue.value.dataType !== this.getDataTypeEnumFromString(assetNode.dataTypeName)) {
                     return StatusCodes.Bad;
                 }
 
-                this.plcController.setDeviceValue(tag.browseName, newDataValue.value.value);
+                this.plcController.setDeviceValue(assetNode.browseName, newDataValue.value.value);
 
                 dataValue.value = newDataValue.value;
                 dataValue.sourceTimestamp = newDataValue.sourceTimestamp;

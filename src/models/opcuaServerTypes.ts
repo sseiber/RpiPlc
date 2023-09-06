@@ -15,7 +15,7 @@ export interface IOpcVariable {
     value: DataValue;
 }
 
-export interface IAssetTag {
+export interface IAssetNode {
     browseName: string;
     displayName: string;
     description: string;
@@ -27,7 +27,7 @@ export interface IAssetTag {
 
 export interface IAssetConfig {
     name: string;
-    tags: IAssetTag[];
+    nodes: IAssetNode[];
 }
 
 export interface IMethodInputArgumentConfig {

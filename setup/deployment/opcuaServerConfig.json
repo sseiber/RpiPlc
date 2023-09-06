@@ -44,7 +44,7 @@
         "assets": [
             {
                 "name": "ActivityIndicator",
-                "tags": [
+                "nodes": [
                     {
                         "browseName": "indicatorLightDeviceRed",
                         "displayName": "IndicatorLightRed",
@@ -76,7 +76,7 @@
             },
             {
                 "name": "DistanceSensor",
-                "tags": [
+                "nodes": [
                     {
                         "browseName": "tfLunaDevice",
                         "displayName": "TFLuna",
