@@ -34,7 +34,12 @@ import {
 } from '../models/rpiPlcTypes';
 import { SerialPort } from 'serialport';
 import { TFLunaResponseParser } from './tfLunaResponseParser';
-import { version, Chip, Line, available } from 'node-libgpiod';
+import {
+    version as gpioVersion,
+    Chip,
+    Line,
+    available as gpioAvailable
+} from 'node-libgpiod';
 import { sleep } from '../utils';
 
 const ModuleName = 'PlcController';
@@ -47,7 +52,6 @@ class PlcDataAccessor {
 export class PlcController {
     private server: Server;
     private activeObserveTargets: ActiveObserveTargets;
-    private gpioAvailable: boolean;
     private bcm2835: Chip;
     private indicatorLightRedPin: Line;
     private indicatorLightYellowPin: Line;
@@ -81,14 +85,24 @@ export class PlcController {
     }
 
     public async init(): Promise<void> {
-        this.server.log([ModuleName, 'info'], `${ModuleName} initialization`);
-        this.server.log([ModuleName, 'info'], `${ModuleName} initialization: libgpiod version: ${version()}, status: ${available() ? 'available' : 'unavailable'}`);
+        this.server.log([ModuleName, 'info'], `${ModuleName} initialization: libgpiod version: ${gpioVersion()}`);
 
         try {
-            this.gpioAvailable = available();
-            if (!this.gpioAvailable) {
+            // wait for up to 15 seconds for GPIO to become available.
+            // NOTE:
+            // this is a mitigation for the kubelet orchestrator which may have not finished
+            // terminating a previous version of the container before starting this new instance.
+            for (let initCount = 0; initCount < 5 && !gpioAvailable(); initCount++) {
+                this.server.log([ModuleName, 'info'], `${ModuleName} gpio is not available, check 1/${initCount + 1}...`);
+
+                await sleep(3000);
+            }
+
+            if (!gpioAvailable()) {
                 throw new Error('GPIO is not available');
             }
+
+            this.server.log([ModuleName, 'info'], `${ModuleName} libgpiod is available`);
 
             this.bcm2835 = new Chip(0);
 
@@ -257,7 +271,7 @@ export class PlcController {
         let status = false;
 
         try {
-            if (this.gpioAvailable) {
+            if (gpioAvailable()) {
                 this.indicatorLightMode = IndicatorLightMode.MANUAL;
 
                 this.indicatorLightRedPin.setValue(lightAction.ledRedState);
@@ -281,7 +295,7 @@ export class PlcController {
         let status = false;
 
         try {
-            if (this.gpioAvailable) {
+            if (gpioAvailable()) {
                 this.indicatorLightMode = lightModeAction.mode;
                 status = true;
             }
