@@ -4,16 +4,21 @@ import {
     TransformOptions
 } from 'stream';
 import {
+    ObserveTarget,
+    ActiveObserveTargets,
+    ActiveObserveTargetsDefaults,
     TFLunaCommandHeader,
     TFLunaMeasureHeader,
     TFLunaRestoreDefaultSettingsCommand,
     TFLunaSaveCurrentSettingsCommand,
+    TFLunaSoftResetCommand,
     TFLunaSetBaudRateCommand,
     TFLunaSetSampleRateCommand,
     TFLunaGetVersionCommand,
     TFLunaMeasurementCommand,
     ITFLunaRestoreDefaultSettingsResponse,
     ITFLunaSaveCurrentSettingsResponse,
+    ITFLunaSoftResetResponse,
     ITFLunaBaudResponse,
     ITFLunaSampleRateResponse,
     ITFLunaMeasureResponse,
@@ -22,19 +27,30 @@ import {
 
 const ModuleName = 'TFLunaResponseParser';
 
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface TFLunaResponseOptions extends TransformOptions {
-    logEnabled: boolean;
 }
 
 export class TFLunaResponseParser extends Transform {
-    private logEnabled: boolean;
+    private activeObserveTargets: ActiveObserveTargets;
     private buffer: Buffer;
+    private measurementSequence = 0;
 
-    constructor({ logEnabled, ...options }: TFLunaResponseOptions) {
+    constructor({ ...options }: TFLunaResponseOptions) {
         super(options);
 
-        this.logEnabled = logEnabled;
+        this.activeObserveTargets = {
+            ...ActiveObserveTargetsDefaults
+        };
         this.buffer = Buffer.alloc(0);
+    }
+
+    public observe(observeTargets: ActiveObserveTargets): string {
+        this.activeObserveTargets = {
+            ...observeTargets
+        };
+
+        return 'OK';
     }
 
     public _transform(chunk: Buffer, _encoding: BufferEncoding, cb: TransformCallback): void {
@@ -61,6 +77,10 @@ export class TFLunaResponseParser extends Transform {
 
                     case TFLunaSaveCurrentSettingsCommand:
                         tfResponse = this.parseSaveCurrentSettingsResponse(commandId, data);
+                        break;
+
+                    case TFLunaSoftResetCommand:
+                        tfResponse = this.parseSoftResetResponse(commandId, data);
                         break;
 
                     case TFLunaSetBaudRateCommand:
@@ -110,20 +130,35 @@ export class TFLunaResponseParser extends Transform {
     }
 
     private parseRestoreDefaultSettingsResponse(commandId: number, data: Buffer): ITFLunaRestoreDefaultSettingsResponse {
-        this.tfLog([ModuleName, 'debug'], `Restore default settings status: ${data.readUInt8(3)}`);
+        const status = data.readUInt8(3);
+
+        this.tfLog([ModuleName, 'debug'], `Restore default settings status: ${status}`);
 
         return {
             commandId,
-            status: data.readUInt8(3)
+            status
         };
     }
 
     private parseSaveCurrentSettingsResponse(commandId: number, data: Buffer): ITFLunaSaveCurrentSettingsResponse {
-        this.tfLog([ModuleName, 'debug'], `Save current settings status: ${data.readUInt8(3)}`);
+        const status = data.readUInt8(3);
+
+        this.tfLog([ModuleName, 'debug'], `Save current settings status: ${status}`);
 
         return {
             commandId,
-            status: data.readUInt8(3)
+            status
+        };
+    }
+
+    private parseSoftResetResponse(commandId: number, data: Buffer): ITFLunaSoftResetResponse {
+        const status = data.readUInt8(3);
+
+        this.tfLog([ModuleName, 'debug'], `Soft reset status: ${status}`);
+
+        return {
+            commandId,
+            status
         };
     }
 
@@ -140,16 +175,20 @@ export class TFLunaResponseParser extends Transform {
     }
 
     private parseSetSampleRateResponse(commandId: number, data: Buffer): ITFLunaSampleRateResponse {
-        this.tfLog([ModuleName, 'debug'], `sampleRate: ${data.readUInt16BE(3)}`);
+        // eslint-disable-next-line no-bitwise
+        const sampleRate = (data.readUInt8(4) << 8) + data.readUInt8(3);
+
+        this.tfLog([ModuleName, 'debug'], `sampleRate: ${sampleRate}`);
 
         return {
             commandId,
-            sampleRate: data.readUInt16BE(3)
+            sampleRate
         };
     }
 
     private parseGetVersionResponse(commandId: number, data: Buffer): ITFLunaVersionResponse {
-        const version = `${data.toString('utf8', 21, 23)}.${data.toString('utf8', 24, 26)}.${data.toString('utf8', 27, 29)}`;
+        // const version = `${data.toString('utf8', 21, 23)}.${data.toString('utf8', 24, 26)}.${data.toString('utf8', 27, 29)}`;
+        const version = `${data.readUInt8(3)}.${data.readUInt8(4)}.${data.readUInt8(5)}`;
 
         this.tfLog([ModuleName, 'debug'], `vers: ${version}`);
 
@@ -160,25 +199,28 @@ export class TFLunaResponseParser extends Transform {
     }
 
     private parseTriggerResponse(commandId: number, data: Buffer): ITFLunaMeasureResponse {
+        const seq = this.measurementSequence++;
         const amp = data.readUInt16LE(4);
         const distCm = (amp <= 100 || amp === 65535) ? 0 : data.readUInt16LE(2);
         const tempCt = data.readUInt16LE(6);
         const tempC = tempCt ? (tempCt / 8) - 256 : 0;
 
-        this.tfLog([ModuleName, 'debug'], `trig: distCm ${distCm}, amp ${amp}, tempC ${tempC}`);
+        this.tfLog([ModuleName, 'debug'], `seq: ${seq}, trig: distCm ${distCm}, amp ${amp}, tempC ${tempC}`);
 
         return {
             commandId,
             distCm,
             amp,
-            tempC: tempC.toString()
+            tempC: tempC.toString(),
+            seq
         };
     }
 
     private tfLog(tags: any, message: any) {
-        if (!this.logEnabled) {
+        if (!this.activeObserveTargets[ObserveTarget.ParserCommandResponse]) {
             return;
         }
+
         const tagsMessage = (tags && Array.isArray(tags)) ? `[${tags.join(', ')}]` : '[]';
 
         // eslint-disable-next-line no-console

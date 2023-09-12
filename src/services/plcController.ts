@@ -1,5 +1,8 @@
 import { Server } from '@hapi/hapi';
 import {
+    ObserveTarget,
+    ActiveObserveTargets,
+    ActiveObserveTargetsDefaults,
     IPlcDeviceConfig,
     ITFLunaStatus,
     TFLunaRestoreDefaultSettingsCommand,
@@ -10,6 +13,7 @@ import {
     TFLunaSetBaudRatePrefix,
     TFLunaSetSampleRateCommand,
     TFLunaSetSampleRatePrefix,
+    TFLunaSoftResetPrefix,
     TFLunaGetVersionCommand,
     TFLunaGetVersionPrefix,
     TFLunaMeasurementPrefix,
@@ -31,6 +35,7 @@ import {
 import { SerialPort } from 'serialport';
 import { TFLunaResponseParser } from './tfLunaResponseParser';
 import { version, Chip, Line, available } from 'node-libgpiod';
+import { sleep } from '../utils';
 
 const ModuleName = 'PlcController';
 
@@ -41,6 +46,7 @@ class PlcDataAccessor {
 
 export class PlcController {
     private server: Server;
+    private activeObserveTargets: ActiveObserveTargets;
     private gpioAvailable: boolean;
     private bcm2835: Chip;
     private indicatorLightRedPin: Line;
@@ -60,6 +66,9 @@ export class PlcController {
     constructor(server: Server, plcDeviceConfig: IPlcDeviceConfig) {
         this.server = server;
         this.plcDeviceConfig = plcDeviceConfig;
+        this.activeObserveTargets = {
+            ...ActiveObserveTargetsDefaults
+        };
         this.tfLunaStatus = {
             restoreDefaultSettingsStatus: 0,
             saveCurrentSettingsStatus: 0,
@@ -148,6 +157,8 @@ export class PlcController {
 
                         // await this.restoreTFLunaSettings();
 
+                        await this.resetTFLuna();
+
                         await this.setTFLunaBaudRate();
 
                         // start with sampleRate === 0 to turn off sampling
@@ -181,6 +192,16 @@ export class PlcController {
         catch (ex) {
             this.server.log([ModuleName, 'error'], `Error during init: ${ex.message}`);
         }
+    }
+
+    public async observe(observeTargets: ActiveObserveTargets): Promise<string> {
+        this.activeObserveTargets = {
+            ...observeTargets
+        };
+
+        this.tfLunaResponseParser.observe(this.activeObserveTargets);
+
+        return 'OK';
     }
 
     public getIndicatorLightMode(): IndicatorLightMode {
@@ -364,46 +385,48 @@ export class PlcController {
                 case TFLunaRestoreDefaultSettingsCommand:
                     this.tfLunaStatus.restoreDefaultSettingsStatus = (data as ITFLunaRestoreDefaultSettingsResponse).status;
 
-                    this.server.log([ModuleName, 'info'], `Restore default settings response status: ${this.tfLunaStatus.restoreDefaultSettingsStatus}`);
+                    this.server.log([ModuleName, 'info'], `Response: restore default settings: ${this.tfLunaStatus.restoreDefaultSettingsStatus}`);
                     break;
 
                 case TFLunaSaveCurrentSettingsCommand:
                     this.tfLunaStatus.saveCurrentSettingsStatus = (data as ITFLunaSaveCurrentSettingsResponse).status;
 
-                    this.server.log([ModuleName, 'info'], `Save current settings response status: ${this.tfLunaStatus.saveCurrentSettingsStatus}`);
+                    this.server.log([ModuleName, 'info'], `Response: save current settings: ${this.tfLunaStatus.saveCurrentSettingsStatus}`);
                     break;
 
                 case TFLunaSetBaudRateCommand:
                     this.tfLunaStatus.baudRate = (data as ITFLunaBaudResponse).baudRate;
 
-                    this.server.log([ModuleName, 'info'], `Current baudRate: ${this.tfLunaStatus.baudRate}`);
+                    this.server.log([ModuleName, 'info'], `Response: current baudRate: ${this.tfLunaStatus.baudRate}`);
                     break;
 
                 case TFLunaSetSampleRateCommand:
                     this.tfLunaStatus.sampleRate = (data as ITFLunaSampleRateResponse).sampleRate;
 
-                    this.server.log([ModuleName, 'info'], `Set sample rate response: ${this.tfLunaStatus.sampleRate}`);
+                    this.server.log([ModuleName, 'info'], `Response: set sample rate: ${this.tfLunaStatus.sampleRate}`);
                     break;
 
                 case TFLunaGetVersionCommand:
                     this.tfLunaStatus.version = (data as ITFLunaVersionResponse).version;
 
-                    this.server.log([ModuleName, 'info'], `Get current version response: ${this.tfLunaStatus.version}`);
+                    this.server.log([ModuleName, 'info'], `Response: get current version: ${this.tfLunaStatus.version}`);
                     break;
 
                 case TFLunaMeasurementCommand:
                     this.tfLunaStatus.measurement = (data as ITFLunaMeasureResponse).distCm;
 
-                    this.server.log([ModuleName, 'info'], `Get measurement response: ${this.tfLunaStatus.measurement}`);
+                    if (this.activeObserveTargets[ObserveTarget.Measurements]) {
+                        this.server.log([ModuleName, 'info'], `Response: measurement: ${this.tfLunaStatus.measurement}`);
+                    }
                     break;
 
                 default:
-                    this.server.log([ModuleName, 'debug'], `Unknown response command: ${commandId}`);
+                    this.server.log([ModuleName, 'debug'], `Response: unknown response: ${commandId}`);
                     break;
             }
         }
         else {
-            this.server.log([ModuleName, 'error'], `Received unknown response data...`);
+            this.server.log([ModuleName, 'error'], `Response: received unknown response data...`);
         }
     }
 
@@ -421,7 +444,6 @@ export class PlcController {
         port.on('close', this.portClosed.bind(this));
 
         this.tfLunaResponseParser = port.pipe(new TFLunaResponseParser({
-            logEnabled: this.plcDeviceConfig.tfLunaDevice.serialParserLog,
             objectMode: true,
             highWaterMark: 1000
         }));
@@ -443,12 +465,24 @@ export class PlcController {
         this.server.log([ModuleName, 'info'], `Restore default settings`);
 
         await this.writeTFLunaCommand(Buffer.from(TFLunaRestoreDefaultSettingsPrefix.concat([0x00])));
+
+        await sleep(2000);
     }
 
     private async saveTFLunaSettings(): Promise<void> {
-        this.server.log([ModuleName, 'info'], `Save current settings settings`);
+        this.server.log([ModuleName, 'info'], `Save current settings`);
 
         await this.writeTFLunaCommand(Buffer.from(TFLunaSaveCurrentSettingsPrefix.concat([0x00])));
+
+        await sleep(2000);
+    }
+
+    private async resetTFLuna(): Promise<void> {
+        this.server.log([ModuleName, 'info'], `Soft reset`);
+
+        await this.writeTFLunaCommand(Buffer.from(TFLunaSoftResetPrefix.concat([0x00])));
+
+        await sleep(5000);
     }
 
     private async setTFLunaBaudRate(baudRate = 115200): Promise<void> {
@@ -462,18 +496,24 @@ export class PlcController {
         /* eslint-enable no-bitwise */
 
         await this.writeTFLunaCommand(Buffer.from(TFLunaSetBaudRatePrefix.concat([data1, data2, data3, data4, 0x00])));
+
+        await sleep(2000);
     }
 
     private async setTFLunaSampleRate(sampleRate: number): Promise<void> {
         this.server.log([ModuleName, 'info'], `Set sample rate request with value: ${sampleRate}`);
 
         await this.writeTFLunaCommand(Buffer.from(TFLunaSetSampleRatePrefix.concat([sampleRate, 0x00, 0x00])));
+
+        await sleep(2000);
     }
 
     private async getTFLunaVersion(): Promise<void> {
         this.server.log([ModuleName, 'info'], `Get version request`);
 
         await this.writeTFLunaCommand(Buffer.from(TFLunaGetVersionPrefix.concat([0x00])));
+
+        await sleep(2000);
     }
 
     private async getTFLunaMeasurement(): Promise<void> {

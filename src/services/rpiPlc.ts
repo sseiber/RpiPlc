@@ -1,6 +1,8 @@
 import { service, inject } from 'spryly';
 import { Server } from '@hapi/hapi';
 import {
+    IObserveRequest,
+    IObserveResponse,
     IRpiPlcServiceRequest,
     IRpiPlcServiceResponse,
     RpiPlcRequestAction
@@ -29,6 +31,33 @@ export class RpiPlcService {
         catch (ex) {
             this.server.log([ModuleName, 'error'], `An error occurred initializing the libgpiod library: ${ex.message}`);
         }
+    }
+
+    public async observe(observeRequest: IObserveRequest): Promise<IObserveResponse> {
+        const response: IObserveResponse = {
+            succeeded: true,
+            message: 'The request succeeded',
+            status: 'OK'
+        };
+
+        this.server.log([ModuleName, 'info'], `RpiPlc request for observe targets:\n${JSON.stringify(observeRequest.observeTargets, null, 4)})}`);
+
+        try {
+            let message;
+
+            response.status = await this.plcController.observe(observeRequest.observeTargets);
+            response.message = message || `RpiPlc request for was processed with status ${response.status}`;
+
+            this.server.log([ModuleName, 'info'], response.message);
+        }
+        catch (ex) {
+            response.succeeded = false;
+            response.message = `RpiPlc request for failed with exception: ${ex.message}`;
+
+            this.server.log([ModuleName, 'error'], response.message);
+        }
+
+        return response;
     }
 
     public async stopOpcuaServer(): Promise<void> {
