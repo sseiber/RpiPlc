@@ -50,7 +50,6 @@ export interface IPlcTfLunaDeviceConfig {
     warningDistance: number;
     dangerDistance: number;
     autoStart: boolean;
-    serialParserLog: boolean;
 }
 
 export interface IPlcDeviceConfig {
