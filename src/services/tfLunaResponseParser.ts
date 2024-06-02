@@ -27,7 +27,7 @@ import {
 
 const ModuleName = 'TFLunaResponseParser';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface TFLunaResponseOptions extends TransformOptions {
 }
 
@@ -163,7 +163,6 @@ export class TFLunaResponseParser extends Transform {
     }
 
     private parseSetBaudRateResponse(commandId: number, data: Buffer): ITFLunaBaudResponse {
-        // eslint-disable-next-line no-bitwise
         const baudRate = ((data.readUInt8(6) << 24) + (data.readUInt8(5) << 16)) + ((data.readUInt8(4) << 8) + (data.readUInt8(3)));
 
         this.tfLog([ModuleName, 'debug'], `baudRate: ${baudRate}`);
@@ -175,7 +174,6 @@ export class TFLunaResponseParser extends Transform {
     }
 
     private parseSetSampleRateResponse(commandId: number, data: Buffer): ITFLunaSampleRateResponse {
-        // eslint-disable-next-line no-bitwise
         const sampleRate = (data.readUInt8(4) << 8) + data.readUInt8(3);
 
         this.tfLog([ModuleName, 'debug'], `sampleRate: ${sampleRate}`);

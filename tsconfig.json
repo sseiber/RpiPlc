@@ -1,30 +1,28 @@
 {
     "compilerOptions": {
+        "rootDir": "./src",
         "outDir": "./dist",
         "module": "CommonJS",
         "moduleResolution": "node",
-        "target": "ES6",
+        "target": "ES2022",
         "sourceMap": true,
         "jsx": "react",
+        "declaration": true,
+        "declarationMap": true,
+        "forceConsistentCasingInFileNames": true,
         "skipLibCheck": true,
         "noImplicitAny": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
-        "experimentalDecorators": true,
-        "emitDecoratorMetadata": true,
+        "strictNullChecks": true,
         "typeRoots": [
             "node_modules/@types"
-        ],
-        "lib": [
-            "ES6"
         ]
     },
     "compileOnSave": true,
     "include": [
-        "./src/**/*.ts",
-        "node-libgpiod.d.ts"
-    ],
-    "exclude": [
-        "node_modules"
+        "eslint.config.mjs",
+        "node-libgpiod.d.ts",
+        "src/**/*.ts"
     ]
 }

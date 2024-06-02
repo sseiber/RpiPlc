@@ -1,96 +1,82 @@
-import {
-    IRpiPlcConfig
-} from './models/rpiPlcTypes';
-import * as fse from 'fs-extra';
-import { resolve as pathResolve } from 'path';
-import { manifest } from './manifest';
-import { compose, ComposeOptions } from 'spryly';
-import * as os from 'os';
+import { FastifyInstance } from 'fastify';
+import { Server, IncomingMessage, ServerResponse } from 'http';
+import { request } from 'axios';
+import composeServer from './composeServer';
 import { forget } from './utils';
 
-declare module '@hapi/hapi' {
-    interface ServerOptionsApp {
-        rpiPlc?: IRpiPlcConfig;
-    }
-}
+const ModuleName = 'Main';
 
-const composeOptions: ComposeOptions = {
-    relativeTo: __dirname,
-    logCompose: {
-        serializers: {
-            req: (req: any) => {
-                return `${(req.method || '').toUpperCase()} ${req.headers?.host} ${req.url}`;
-            },
-            res: (res: any) => {
-                return `${res.statusCode} ${res.raw?.statusMessage}`;
-            },
-            tags: (tags: any) => {
-                return `[${tags}]`;
-            },
-            responseTime: (responseTime: any) => {
-                return `${responseTime}ms`;
-            },
-            err: (error: any) => {
-                return error;
-            }
-        },
-        redact: ['req.headers.authorization'],
-        transport: {
-            target: 'pino-pretty',
-            options: {
-                colorize: true,
-                messageFormat: '{tags} {data} {req} {res} {responseTime}',
-                translateTime: 'SYS:yyyy-mm-dd"T"HH:MM:sso',
-                ignore: 'pid,hostname,tags,data,req,res,responseTime'
-            }
-        }
-    }
-};
-
-process.on('unhandledRejection', (e: any) => {
-    /* eslint-disable */
-    console.log(['startup', 'error'], `Excepction on startup... ${e.message}`);
-    console.log(['startup', 'error'], e.stack);
-    /* eslint-enable */
+process.on('unhandledRejection', (err) => {
+    // eslint-disable-next-line no-console
+    console.error(err);
+    process.exit(1);
 });
 
 async function start() {
-    try {
-        const storageRoot = process.env.RPIPLC_SERVICE_STORAGE
-            ? pathResolve(process.env.RPIPLC_SERVICE_STORAGE)
-            : '/rpi-plc/data';
-
-        const plcConfig = fse.readJsonSync(pathResolve(storageRoot, 'plcConfig.json'));
-        const opcuaServerConfig = fse.readJSONSync(pathResolve(storageRoot, 'opcuaServerConfig.json'));
-
-        const server = await compose(manifest(storageRoot, plcConfig, opcuaServerConfig.serverConfig, opcuaServerConfig.assetRootConfig), composeOptions);
-
-        const stopServer = async () => {
-            server.log(['shutdown', 'info'], '☮︎ Stopping hapi server');
-            await server.stop({ timeout: 10000 });
-
-            server.log(['shutdown', 'info'], `⏏︎ Server stopped`);
-            process.exit(0);
+    const loggerConfig = process.env.NODE_ENV === 'production'
+        ? true
+        : {
+            redact: ['req.headers.authorization'],
+            level: 'info',
+            serializers: {
+                req(req: any) {
+                    return {
+                        method: req.method,
+                        url: req.url,
+                        protocol: req.protocol,
+                        headers: {
+                            host: req.headers.host,
+                            'user-agent': req.headers['user-agent']
+                        }
+                    };
+                },
+                // res(res) {
+                //     return {
+                //         statusCode: res.statusCode,
+                //         status: res.status
+                //     };
+                // },
+                tags: (tags: string[]) => {
+                    return (tags && Array.isArray(tags)) ? `[${tags.join(',')}]` : '[]';
+                }
+            },
+            transport: {
+                target: 'pino-pretty',
+                options: {
+                    colorize: true,
+                    singleLine: true,
+                    messageFormat: '{tags} {msg} {if req.url}url:({req.protocol}://{req.headers.host}{req.url}) {end}{res.statusCode} {responseTime}',
+                    translateTime: 'SYS:yyyy-mm-dd"T"HH:MM:sso',
+                    ignore: 'pid,hostname,module,tags,data,msg,req,res,reqId,responseTime',
+                }
+            }
         };
 
-        process.on('SIGINT', stopServer);
-        process.on('SIGTERM', stopServer);
+    try {
+        const server: FastifyInstance<Server, IncomingMessage, ServerResponse> = await composeServer({
+            logger: loggerConfig
+        });
 
-        server.log(['startup', 'info'], `🚀 Starting HAPI server instance...`);
-        await server.start();
+        server.log.info({ tags: [ModuleName] }, `🚀 Server instance started`);
 
-        server.log(['startup', 'info'], `✅ RpiPlc Service started`);
-        server.log(['startup', 'info'], `🌎 ${server.info.uri}`);
-        server.log(['startup', 'info'], ` > Hapi version: ${server.version}`);
-        server.log(['startup', 'info'], ` > Plugins: [${Object.keys(server.registrations).join(', ')}]`);
-        server.log(['startup', 'info'], ` > Machine: ${os.platform()}, ${os.cpus().length} core, ` +
-            `freemem=${(os.freemem() / 1024 / 1024).toFixed(0)}mb, totalmem=${(os.totalmem() / 1024 / 1024).toFixed(0)}mb`);
-    }
-    catch (ex) {
-        /* eslint-disable no-console */
-        console.log(['startup', 'error'], `Exception on startup... ${ex.message}`);
-        console.log(['startup', 'error'], ex.stack);
-        /* eslint-enable no-console */
+        const PORT = (server.config.PORT ?? process.env.PORT ?? process.env.port ?? process.env.PORT0 ?? process.env.port0) ?? '9091';
+
+        await server.listen({
+            host: '0.0.0.0',
+            port: parseInt(PORT, 10)
+        });
+
+        for (const signal of ['SIGINT', 'SIGTERM']) {
+            process.on(signal, async () => {
+                const error = await server.close();
+
+                console.log(`Closing server instance with ${signal}`);
+                process.exit(error ? 1 : 0);
+            });
+        }
+    } catch (ex) {
+        console.error(`Error ${ModuleName}: ${ex.message}`);
+        console.info(`Error ${ModuleName}: ☮︎ Stopping server`);
 
         process.exit(1);
     }

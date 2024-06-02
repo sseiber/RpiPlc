@@ -95,7 +95,7 @@ export interface ITfMeasurementAction {
 export enum RpiPlcRequestAction {
     IndicatorLight = 'INDICATORLIGHT',
     IndicatorMode = 'INDICATORMODE',
-    TfMeasurement = 'MEASUREMENT',
+    TfMeasurement = 'MEASUREMENT'
 }
 
 export interface IRpiPlcServiceRequest {
