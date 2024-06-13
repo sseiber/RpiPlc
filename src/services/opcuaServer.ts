@@ -1,4 +1,4 @@
-import { Server } from '@hapi/hapi';
+import { FastifyInstance } from 'fastify';
 import {
     AddressSpace,
     BindVariableOptionsVariation2,
@@ -6,18 +6,15 @@ import {
     DataType,
     DataValue,
     Namespace,
-    OPCUACertificateManager,
+    // OPCUACertificateManager,
     OPCUAServer,
-    OPCUAServerOptions,
     SessionContext,
     StatusCodes,
     UAEventType,
     UAObject,
+    UAString,
     UAVariable,
-    Variant,
-    coerceLocalizedText,
-    getHostname,
-    makeApplicationUrn
+    Variant
 } from 'node-opcua';
 import { join as pathJoin } from 'path';
 import * as fse from 'fs-extra';
@@ -30,12 +27,13 @@ import {
     IMethodInputArgumentConfig
 } from '../models/opcuaServerTypes';
 import { PlcController } from './plcController';
+import { IndicatorLightMode } from '../models/rpiPlcTypes';
 
 const ModuleName = 'RpiPlcOpcuaServer';
 
 export class RpiPlcOpcuaServer {
-    private server: Server;
-    private serverCertificateManager: OPCUACertificateManager;
+    private server: FastifyInstance;
+    // private serverCertificateManager: OPCUACertificateManager;
     private opcuaServer: OPCUAServer;
     private addressSpace: AddressSpace;
     private localServerNamespace: Namespace;
@@ -47,7 +45,7 @@ export class RpiPlcOpcuaServer {
     private opcVariableMap: Map<string, IOpcVariable> = new Map<string, IOpcVariable>();
     private plcController: PlcController;
 
-    constructor(server: Server, plcController: PlcController) {
+    constructor(server: FastifyInstance, plcController: PlcController) {
         this.server = server;
         this.plcController = plcController;
     }
@@ -57,10 +55,10 @@ export class RpiPlcOpcuaServer {
     }
 
     public async start(): Promise<void> {
-        this.server.log([ModuleName, 'info'], `Instantiating opcua server`);
+        this.server.log.info([ModuleName, 'info'], `Instantiating opcua server`);
 
         try {
-            const configRoot = pathJoin(this.server.settings.app.rpiPlc.storageRoot, '.config');
+            const configRoot = pathJoin(this.server.main.storageRoot, '.config');
             fse.ensureDirSync(configRoot);
 
             // const pkiRoot = pathJoin(configRoot, 'PKI');
@@ -75,22 +73,22 @@ export class RpiPlcOpcuaServer {
             // const opcuaServerOptions = await this.createServerSelfSignedCertificate(pathJoin(pkiRoot, 'certificate.pem'));
 
             this.opcuaServer = new OPCUAServer({
-                ...this.server.settings.app.rpiPlc.serverConfig
+                ...this.server.main.opcuaServerOptions
                 // certificateFile: pathJoin(this.server.settings.app.rpiPlc.storageRoot, 'rpi-plc.crt'), // use built-in auto-created cert functionality
                 // privateKeyFile: pathJoin(this.server.settings.app.rpiPlc.storageRoot, 'rpi-plc.key')
             });
 
             await this.opcuaServer.initialize();
 
-            await this.constructAddressSpace();
+            this.constructAddressSpace();
 
-            this.server.log([ModuleName, 'info'], `Starting server...`);
+            this.server.log.info([ModuleName, 'info'], `Starting server...`);
             await this.opcuaServer.start();
 
-            this.server.log([ModuleName, 'info'], `Server started listening on port: ${this.opcuaServer.endpoints[0].port}`);
+            this.server.log.info([ModuleName, 'info'], `Server started listening on port: ${this.opcuaServer.endpoints[0].port}`);
         }
         catch (ex) {
-            this.server.log([ModuleName, 'error'], `Error during server startup: ${ex.message}`);
+            this.server.log.error([ModuleName, 'error'], `Error during server startup: ${ex.message}`);
         }
     }
 
@@ -99,62 +97,65 @@ export class RpiPlcOpcuaServer {
     }
 
     public getEndpoint(): string {
-        let endpoint = '';
+        let endpoint: UAString = '';
 
         try {
             endpoint = this.opcuaServer?.endpoints[0]?.endpointDescriptions()[0]?.endpointUrl;
         }
         catch (ex) {
-            this.server.log([ModuleName, 'error'], `Error getting server endpoint - may be another running instance at this port: ${this.server.settings.app.rpiPlc.serverConfig?.port}`);
+            this.server.log.error([ModuleName, 'error'], `Error getting server endpoint - may be another running instance at this port: ${this.server.main.opcuaServerOptions?.port}, ${ex.message}`);
         }
 
-        return endpoint;
+        return endpoint ?? '';
     }
 
-    // @ts-ignore
-    private async createServerSelfSignedCertificate(selfSignedCertificatePath: string): Promise<OPCUAServerOptions> {
-        this.server.log([ModuleName, 'info'], `createServerSelfSignedCertificate`);
+    // private async createServerSelfSignedCertificate(selfSignedCertificatePath: string): Promise<OPCUAServerOptions> {
+    //     this.server.log.info([ModuleName, 'info'], `createServerSelfSignedCertificate`);
 
-        const opcuaServerOptions = {
-            ...this.server.settings.app.rpiPlc.serverConfig,
-            // serverCertificateManager: this.serverCertificateManager,
-            certificateFile: selfSignedCertificatePath
-        };
+    //     const opcuaServerOptions = {
+    //         ...this.server.settings.app.rpiPlc.serverConfig,
+    //         // serverCertificateManager: this.serverCertificateManager,
+    //         certificateFile: selfSignedCertificatePath
+    //     };
 
-        const appName = coerceLocalizedText(opcuaServerOptions.serverInfo.applicationName).text;
-        opcuaServerOptions.serverInfo.applicationUri = makeApplicationUrn(getHostname(), appName);
+    //     const appName = coerceLocalizedText(opcuaServerOptions.serverInfo.applicationName).text;
+    //     opcuaServerOptions.serverInfo.applicationUri = makeApplicationUrn(getHostname(), appName);
 
+    //     try {
+    //         if (!fse.pathExistsSync(opcuaServerOptions.certificateFile)) {
+    //             this.server.log.info([ModuleName, 'info'], `Creating new certificate file:`);
+
+    //             const certFileRequest = {
+    //                 applicationUri: opcuaServerOptions.serverInfo.applicationUri,
+    //                 dns: [getHostname()],
+    //                 // ip: await getIpAddresses(),
+    //                 outputFile: selfSignedCertificatePath,
+    //                 subject: `/CN=${appName}/O=ScottSHome/L=Medina/C=US`,
+    //                 startDate: new Date(),
+    //                 validity: 365 * 10
+    //             };
+
+    //             this.server.log.info([ModuleName, 'info'], `Self-signed certificate file request params:\n${JSON.stringify(certFileRequest, null, 2)}\n`);
+
+    //             await this.serverCertificateManager.createSelfSignedCertificate(certFileRequest);
+    //         }
+    //         else {
+    //             this.server.log.info([ModuleName, 'info'], `Using existing certificate file at: ${opcuaServerOptions.certificateFile}`);
+    //         }
+    //     }
+    //     catch (ex) {
+    //         this.server.log.error([ModuleName, 'error'], `Error creating server self signed certificate: ${ex.message}`);
+    //     }
+
+    //     return opcuaServerOptions;
+    // }
+
+    private constructAddressSpace(): void {
         try {
-            if (!fse.pathExistsSync(opcuaServerOptions.certificateFile)) {
-                this.server.log([ModuleName, 'info'], `Creating new certificate file:`);
-
-                const certFileRequest = {
-                    applicationUri: opcuaServerOptions.serverInfo.applicationUri,
-                    dns: [getHostname()],
-                    // ip: await getIpAddresses(),
-                    outputFile: selfSignedCertificatePath,
-                    subject: `/CN=${appName}/O=ScottSHome/L=Medina/C=US`,
-                    startDate: new Date(),
-                    validity: 365 * 10
-                };
-
-                this.server.log([ModuleName, 'info'], `Self-signed certificate file request params:\n${JSON.stringify(certFileRequest, null, 2)}\n`);
-
-                await this.serverCertificateManager.createSelfSignedCertificate(certFileRequest);
+            if (!this.opcuaServer.engine.addressSpace) {
+                throw new Error('The OPCUA server engine address space is not configured');
             }
-            else {
-                this.server.log([ModuleName, 'info'], `Using existing certificate file at: ${opcuaServerOptions.certificateFile}`);
-            }
-        }
-        catch (ex) {
-            this.server.log([ModuleName, 'error'], `Error creating server self signed certificate: ${ex.message}`);
-        }
 
-        return opcuaServerOptions;
-    }
-
-    private async constructAddressSpace(): Promise<void> {
-        try {
             this.addressSpace = this.opcuaServer.engine.addressSpace;
             this.localServerNamespace = this.addressSpace.getOwnNamespace();
 
@@ -174,23 +175,23 @@ export class RpiPlcOpcuaServer {
             });
 
             this.assetsRoot = this.localServerNamespace.addObject({
-                browseName: this.server.settings.app.rpiPlc.assetRootConfig.rootFolderName,
-                displayName: this.server.settings.app.rpiPlc.assetRootConfig.rootFolderName,
+                browseName: this.server.main.assetRootConfig.rootFolderName,
+                displayName: this.server.main.assetRootConfig.rootFolderName,
                 componentOf: this.customLocationRoot,
                 notifierOf: this.customLocationRoot
             });
 
-            this.server.log([ModuleName, 'info'], `Processing server configuration...`);
-            await this.createAssets();
+            this.server.log.info([ModuleName, 'info'], `Processing server configuration...`);
+            this.createAssets();
         }
         catch (ex) {
-            this.server.log([ModuleName, 'error'], `Error while constructing server address space: ${ex.message}`);
+            this.server.log.error([ModuleName, 'error'], `Error while constructing server address space: ${ex.message}`);
         }
     }
 
-    private async createAssets(): Promise<void> {
+    private createAssets(): void {
         try {
-            const assetConfigs: IAssetConfig[] = this.server.settings.app.rpiPlc.assetRootConfig.assets;
+            const assetConfigs: IAssetConfig[] = this.server.main.assetRootConfig.assets;
 
             for (const assetConfig of assetConfigs) {
                 const assetVariablesMap: Map<string, IOpcVariable> = new Map<string, IOpcVariable>();
@@ -204,18 +205,24 @@ export class RpiPlcOpcuaServer {
                 });
 
                 for (const assetNode of assetConfig.nodes) {
-                    const opcVariable: IOpcVariable = {
-                        variable: undefined,
-                        sampleInterval: assetNode.sampleInterval || 0,
-                        value: new DataValue({
-                            value: new Variant({
-                                dataType: assetNode.dataTypeName,
-                                value: assetNode.value
-                            })
+                    const dataValue = new DataValue({
+                        value: new Variant({
+                            dataType: assetNode.dataTypeName,
+                            value: assetNode.value
                         })
-                    };
+                    });
+                    const uaVariable = this.createAssetVariable(opcAsset, assetNode, dataValue);
 
-                    opcVariable.variable = await this.createAssetVariable(opcAsset, assetNode, opcVariable.value);
+                    if (!uaVariable) {
+                        this.server.log.error([ModuleName, 'error'], `Error creating UAVariable: ${assetNode.browseName}`);
+                        continue;
+                    }
+
+                    const opcVariable: IOpcVariable = {
+                        variable: uaVariable,
+                        sampleInterval: assetNode.sampleInterval || 0,
+                        value: dataValue
+                    };
 
                     assetVariablesMap.set(assetNode.browseName, opcVariable);
                     this.opcVariableMap.set(opcVariable.variable.nodeId.value.toString(), opcVariable);
@@ -229,7 +236,7 @@ export class RpiPlcOpcuaServer {
                 this.opcAssetMap.set(assetConfig.name, opcAssetInfo);
             }
 
-            const methodConfigs: IMethodConfig[] = this.server.settings.app.rpiPlc.assetRootConfig.methods;
+            const methodConfigs: IMethodConfig[] = this.server.main.assetRootConfig.methods;
 
             for (const methodConfig of methodConfigs) {
                 const method = this.localServerNamespace.addMethod(this.assetsRoot, {
@@ -252,6 +259,7 @@ export class RpiPlcOpcuaServer {
                     })
                 });
 
+                /* eslint-disable @typescript-eslint/no-unsafe-argument */
                 switch (methodConfig.browseName) {
                     case 'controlIndicatorLights':
                         method.bindMethod(this.controlIndicatorLights.bind(this));
@@ -266,17 +274,18 @@ export class RpiPlcOpcuaServer {
                         break;
 
                     default:
-                        this.server.log([ModuleName, 'warning'], `Unknown method name: ${methodConfig.browseName}`);
+                        this.server.log.warn([ModuleName, 'warning'], `Unknown method name: ${methodConfig.browseName}`);
                 }
+                /* eslint-enable @typescript-eslint/no-unsafe-argument */
             }
         }
         catch (ex) {
-            this.server.log([ModuleName, 'error'], `Error while processing server configuration (adding variables): ${ex.message}`);
+            this.server.log.error([ModuleName, 'error'], `Error while processing server configuration (adding variables): ${ex.message}`);
         }
     }
 
-    private async createAssetVariable(asset: UAObject, assetNode: IAssetNode, dataValue: DataValue): Promise<UAVariable> {
-        let uaVariable: UAVariable;
+    private createAssetVariable(asset: UAObject, assetNode: IAssetNode, dataValue: DataValue): UAVariable | undefined {
+        let uaVariable: UAVariable | undefined;
 
         try {
             uaVariable = this.localServerNamespace.addVariable({
@@ -292,14 +301,14 @@ export class RpiPlcOpcuaServer {
             this.addressSpace.installHistoricalDataNode(uaVariable);
         }
         catch (ex) {
-            this.server.log([ModuleName, 'error'], `Error while adding new UAVariable: ${ex.message}`);
+            this.server.log.error([ModuleName, 'error'], `Error while adding new UAVariable: ${ex.message}`);
         }
 
         return uaVariable;
     }
 
-    private async controlIndicatorLights(inputArguments: Variant[], _context: SessionContext): Promise<CallMethodResultOptions> {
-        this.server.log([ModuleName, 'info'], `controlIndicatorLights`);
+    private controlIndicatorLights(inputArguments: Variant[], _context: SessionContext): CallMethodResultOptions {
+        this.server.log.info([ModuleName, 'info'], `controlIndicatorLights`);
 
         const callMethodResult = {
             statusCode: StatusCodes.Good,
@@ -316,14 +325,14 @@ export class RpiPlcOpcuaServer {
         };
 
         try {
-            await this.plcController.indicatorLightControl({
+            this.plcController.indicatorLightControl({
                 ledRedState: inputArguments[0].value,
                 ledYellowState: inputArguments[1].value,
                 ledGreenState: inputArguments[2].value
             });
         }
         catch (ex) {
-            this.server.log([ModuleName, 'error'], `Error in controlIndicatorLights: ${ex.message}`);
+            this.server.log.error([ModuleName, 'error'], `Error in controlIndicatorLights: ${ex.message}`);
 
             callMethodResult.statusCode = StatusCodes.Bad;
             callMethodResult.outputArguments[0].value = false;
@@ -333,8 +342,8 @@ export class RpiPlcOpcuaServer {
         return callMethodResult;
     }
 
-    private async setIndicatorLightMode(inputArguments: Variant[], _context: SessionContext): Promise<CallMethodResultOptions> {
-        this.server.log([ModuleName, 'info'], `setIndicatorLightMode`);
+    private setIndicatorLightMode(inputArguments: Variant[], _context: SessionContext): CallMethodResultOptions {
+        this.server.log.info([ModuleName, 'info'], `setIndicatorLightMode`);
 
         const callMethodResult = {
             statusCode: StatusCodes.Good,
@@ -351,10 +360,10 @@ export class RpiPlcOpcuaServer {
         };
 
         try {
-            this.plcController.setIndicatorLightMode(inputArguments[0].value);
+            this.plcController.setIndicatorLightMode(inputArguments[0].value as IndicatorLightMode);
         }
         catch (ex) {
-            this.server.log([ModuleName, 'error'], `Error in setIndicatorLightMode: ${ex.message}`);
+            this.server.log.error([ModuleName, 'error'], `Error in setIndicatorLightMode: ${ex.message}`);
 
             callMethodResult.statusCode = StatusCodes.Bad;
             callMethodResult.outputArguments[0].value = false;
@@ -365,7 +374,7 @@ export class RpiPlcOpcuaServer {
     }
 
     private async controlDistanceSensor(inputArguments: Variant[], _context: SessionContext): Promise<CallMethodResultOptions> {
-        this.server.log([ModuleName, 'info'], `controlDistanceSensor`);
+        this.server.log.info([ModuleName, 'info'], `controlDistanceSensor`);
 
         const callMethodResult = {
             statusCode: StatusCodes.Good,
@@ -397,7 +406,7 @@ export class RpiPlcOpcuaServer {
             }
         }
         catch (ex) {
-            this.server.log([ModuleName, 'error'], `Error in controlDistanceSensor: ${ex.message}`);
+            this.server.log.error([ModuleName, 'error'], `Error in controlDistanceSensor: ${ex.message}`);
 
             callMethodResult.statusCode = StatusCodes.Bad;
             callMethodResult.outputArguments[0].value = false;
@@ -417,7 +426,7 @@ export class RpiPlcOpcuaServer {
 
                 return dataValue;
             },
-            timestamped_set: async (newDataValue: DataValue): Promise<StatusCodes> => {
+            timestamped_set: (newDataValue: DataValue): StatusCodes => {
                 if (newDataValue.value.dataType !== this.getDataTypeEnumFromString(assetNode.dataTypeName)) {
                     return StatusCodes.Bad;
                 }

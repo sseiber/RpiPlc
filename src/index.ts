@@ -1,10 +1,18 @@
 import { FastifyInstance } from 'fastify';
 import { Server, IncomingMessage, ServerResponse } from 'http';
-import { request } from 'axios';
+import { resolve as pathResolve } from 'path';
+import * as fse from 'fs-extra';
 import composeServer from './composeServer';
 import { forget } from './utils';
+import { IRpiPlcConfig } from './models/rpiPlcTypes';
 
-const ModuleName = 'Main';
+const ModuleName = 'main';
+
+declare module 'fastify' {
+    interface FastifyInstance {
+        [ModuleName]: IRpiPlcConfig;
+    }
+}
 
 process.on('unhandledRejection', (err) => {
     // eslint-disable-next-line no-console
@@ -25,7 +33,7 @@ async function start() {
                         url: req.url,
                         protocol: req.protocol,
                         headers: {
-                            host: req.headers.host,
+                            'host': req.headers.host,
                             'user-agent': req.headers['user-agent']
                         }
                     };
@@ -47,7 +55,7 @@ async function start() {
                     singleLine: true,
                     messageFormat: '{tags} {msg} {if req.url}url:({req.protocol}://{req.headers.host}{req.url}) {end}{res.statusCode} {responseTime}',
                     translateTime: 'SYS:yyyy-mm-dd"T"HH:MM:sso',
-                    ignore: 'pid,hostname,module,tags,data,msg,req,res,reqId,responseTime',
+                    ignore: 'pid,hostname,module,tags,data,msg,req,res,reqId,responseTime'
                 }
             }
         };
@@ -59,7 +67,21 @@ async function start() {
 
         server.log.info({ tags: [ModuleName] }, `🚀 Server instance started`);
 
-        const PORT = (server.config.PORT ?? process.env.PORT ?? process.env.port ?? process.env.PORT0 ?? process.env.port0) ?? '9091';
+        const storageRoot = server.config.RPIPLC_SERVICE_STORAGE
+            ? pathResolve(server.config.RPIPLC_SERVICE_STORAGE)
+            : '/rpi-plc/data';
+
+        const plcConfig = fse.readJsonSync(pathResolve(storageRoot, server.config.PLC_CONFIG_FILENAME));
+        const opcuaServerConfig = fse.readJSONSync(pathResolve(storageRoot, server.config.OPCUA_CONFIG_FILENAME));
+
+        server.decorate(ModuleName, {
+            storageRoot,
+            plcDeviceConfig: plcConfig,
+            opcuaServerOptions: opcuaServerConfig.serverConfig,
+            assetRootConfig: opcuaServerConfig.assetRootConfig
+        });
+
+        const PORT = (server.config.PORT ?? process.env.PORT ?? process.env.port ?? process.env.PORT0 ?? process.env.port0) ?? '9092';
 
         await server.listen({
             host: '0.0.0.0',
@@ -67,16 +89,27 @@ async function start() {
         });
 
         for (const signal of ['SIGINT', 'SIGTERM']) {
-            process.on(signal, async () => {
-                const error = await server.close();
+            process.on(signal, () => {
+                void (async () => {
+                    server.log.info({ tags: [ModuleName] }, `Closing server instance with ${signal}`);
 
-                console.log(`Closing server instance with ${signal}`);
-                process.exit(error ? 1 : 0);
+                    await server.close();
+                })()
+                    .catch((ex) => {
+                        // eslint-disable-next-line no-console
+                        console.error(`Error ${ModuleName}: ${ex.message}`);
+                    })
+                    .finally(() => {
+                        process.exit(0);
+                    });
             });
         }
-    } catch (ex) {
+    }
+    catch (ex) {
+        /* eslint-disable no-console */
         console.error(`Error ${ModuleName}: ${ex.message}`);
         console.info(`Error ${ModuleName}: ☮︎ Stopping server`);
+        /* eslint-enable no-console */
 
         process.exit(1);
     }

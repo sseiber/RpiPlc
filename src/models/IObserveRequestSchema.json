@@ -1,0 +1,34 @@
+{
+  "$ref": "#/definitions/IObserveRequest",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "ActiveObserveTargets": {
+      "additionalProperties": false,
+      "properties": {
+        "measurements": {
+          "type": "boolean"
+        },
+        "parserCommandResponse": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "measurements",
+        "parserCommandResponse"
+      ],
+      "type": "object"
+    },
+    "IObserveRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "observeTargets": {
+          "$ref": "#/definitions/ActiveObserveTargets"
+        }
+      },
+      "required": [
+        "observeTargets"
+      ],
+      "type": "object"
+    }
+  }
+}

@@ -16,7 +16,7 @@ const appHealthRouter: FastifyPluginAsync = async (instance: FastifyInstance): P
                 routeInstance.get('/', (_request, response) => {
                     routeInstance.log.info({ tags: [RouteName] }, `getRoot`);
 
-                    response.status(200).send({ 200: 'RpiPLC Service' });
+                    return response.status(200).send({ 200: 'RpiPLC Service' });
                 });
 
                 routeInstance.get('/health-check', (_request, response) => {
@@ -25,10 +25,10 @@ const appHealthRouter: FastifyPluginAsync = async (instance: FastifyInstance): P
                     try {
                         // await utils.healthCheck();
 
-                        response.status(200).send(`healthy`);
+                        return response.status(200).send(`healthy`);
                     }
                     catch (ex) {
-                        response.status(500).send(`Unhealthy: ${ex.message}`);
+                        return response.status(500).send(`Unhealthy: ${ex.message}`);
                     }
                 });
 

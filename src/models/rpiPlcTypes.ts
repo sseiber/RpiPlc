@@ -1,5 +1,6 @@
 import { OPCUAServerOptions } from 'node-opcua';
 import { IAssetRootConfig } from './opcuaServerTypes';
+
 export enum ObserveTarget {
     Measurements = 'measurements',
     ParserCommandResponse = 'parserCommandResponse'
@@ -19,16 +20,59 @@ export interface IObserveRequest {
     observeTargets: ActiveObserveTargets;
 }
 
-export interface IObserveResponse {
+export interface IIndicatorLightAction {
+    ledRedState: GPIOState;
+    ledYellowState: GPIOState;
+    ledGreenState: GPIOState;
+}
+
+export const enum IndicatorLightMode {
+    AUTO = 'AUTO',
+    GREEN = 'GREEN',
+    YELLOWFLASHING = 'YELLOWFLASHING',
+    REDFLASHING = 'REDFLASHING',
+    MANUAL = 'MANUAL'
+}
+
+export interface IIndicatorLightModeAction {
+    mode: IndicatorLightMode;
+}
+
+export const enum TfMeasurementAction {
+    Start = 'START',
+    Stop = 'STOP',
+    Single = 'SINGLE'
+}
+
+export interface ITfMeasurementAction {
+    action: TfMeasurementAction;
+}
+
+export enum ControlRequestAction {
+    IndicatorLight = 'INDICATORLIGHT',
+    IndicatorMode = 'INDICATORMODE',
+    TfMeasurement = 'MEASUREMENT'
+}
+
+export interface IControlRequest {
+    action: ControlRequestAction;
+    data?: IIndicatorLightAction | IIndicatorLightModeAction | ITfMeasurementAction;
+}
+
+export interface IRpiPlcResponse {
     succeeded: boolean;
     message: string;
-    status: string;
+    status: boolean;
+}
+
+export interface IServiceErrorMessage {
+    message: string;
 }
 
 export interface IRpiPlcConfig {
     storageRoot: string;
     plcDeviceConfig: IPlcDeviceConfig;
-    serverConfig: OPCUAServerOptions;
+    opcuaServerOptions: OPCUAServerOptions;
     assetRootConfig: IAssetRootConfig;
 }
 
@@ -62,51 +106,6 @@ export interface IPlcDeviceConfig {
 export const enum GPIOState {
     Low = 0,
     High = 1
-}
-
-export interface IIndicatorLightAction {
-    ledRedState: GPIOState;
-    ledYellowState: GPIOState;
-    ledGreenState: GPIOState;
-}
-
-export const enum IndicatorLightMode {
-    AUTO = 'AUTO',
-    GREEN = 'GREEN',
-    YELLOWFLASHING = 'YELLOWFLASHING',
-    REDFLASHING = 'REDFLASHING',
-    MANUAL = 'MANUAL'
-}
-
-export interface IIndicatorLightModeAction {
-    mode: IndicatorLightMode;
-}
-
-export const enum TfMeasurementAction {
-    Start = 'START',
-    Stop = 'STOP',
-    Single = 'SINGLE'
-}
-
-export interface ITfMeasurementAction {
-    action: TfMeasurementAction;
-}
-
-export enum RpiPlcRequestAction {
-    IndicatorLight = 'INDICATORLIGHT',
-    IndicatorMode = 'INDICATORMODE',
-    TfMeasurement = 'MEASUREMENT'
-}
-
-export interface IRpiPlcServiceRequest {
-    action: RpiPlcRequestAction;
-    data?: any;
-}
-
-export interface IRpiPlcServiceResponse {
-    succeeded: boolean;
-    message: string;
-    status: any;
 }
 
 export interface ITFLunaStatus {

@@ -13,14 +13,11 @@ const ServiceName = 'config';
 
 interface IRpiPlcEnv {
     NODE_ENV: string;
-    LOG_LEVEL: string;
+    DEBUG: string;
     PORT: string;
-    azureAiCluResource: string;
-    azureAiCluProjectName: string;
-    azureAiCluDeploymentName: string;
-    azureAiCluQueryUrl: string;
-    azureAiCluQueryApiVersion: string;
-    azureAiCluApiKey: string;
+    RPIPLC_SERVICE_STORAGE: string;
+    PLC_CONFIG_FILENAME: string;
+    OPCUA_CONFIG_FILENAME: string;
 }
 
 const configSchema: JSONSchemaType<IRpiPlcEnv> = {
@@ -30,49 +27,34 @@ const configSchema: JSONSchemaType<IRpiPlcEnv> = {
             type: 'string',
             default: 'development'
         },
-        LOG_LEVEL: {
+        DEBUG: {
             type: 'string',
             default: 'info'
         },
         PORT: {
             type: 'string',
-            default: '9091'
+            default: '9092'
         },
-        azureAiCluResource: {
+        RPIPLC_SERVICE_STORAGE: {
             type: 'string',
-            default: ''
+            default: '9092'
         },
-        azureAiCluProjectName: {
+        PLC_CONFIG_FILENAME: {
             type: 'string',
-            default: ''
+            default: 'plcConfig.json'
         },
-        azureAiCluDeploymentName: {
+        OPCUA_CONFIG_FILENAME: {
             type: 'string',
-            default: ''
-        },
-        azureAiCluQueryUrl: {
-            type: 'string',
-            default: ''
-        },
-        azureAiCluQueryApiVersion: {
-            type: 'string',
-            default: ''
-        },
-        azureAiCluApiKey: {
-            type: 'string',
-            default: ''
+            default: 'opcuaServerConfig.json'
         }
     },
     required: [
         'NODE_ENV',
-        'LOG_LEVEL',
+        'DEBUG',
         'PORT',
-        'azureAiCluResource',
-        'azureAiCluProjectName',
-        'azureAiCluDeploymentName',
-        'azureAiCluQueryUrl',
-        'azureAiCluQueryApiVersion',
-        'azureAiCluApiKey'
+        'RPIPLC_SERVICE_STORAGE',
+        'PLC_CONFIG_FILENAME',
+        'OPCUA_CONFIG_FILENAME'
     ]
 };
 
@@ -94,7 +76,7 @@ const config: FastifyPluginAsync<IConfigServiceOptions> = async (server: Fastify
             });
 
             for (const key of Object.keys(envConfig)) {
-                if (!envConfig[key as keyof IRpiPlcEnv]) {
+                if (!envConfig[key]) {
                     return reject(new Error(`envConfig missing required value for: ${key}`));
                 }
             }
@@ -113,11 +95,11 @@ const config: FastifyPluginAsync<IConfigServiceOptions> = async (server: Fastify
 
 declare module 'fastify' {
     interface FastifyInstance {
-        config: IRpiPlcEnv;
+        [ServiceName]: IRpiPlcEnv;
     }
 }
 
 export default fp(config, {
     fastify: '4.x',
-    name: 'config'
+    name: ServiceName
 });

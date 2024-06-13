@@ -56,17 +56,17 @@ export class TFLunaResponseParser extends Transform {
     public _transform(chunk: Buffer, _encoding: BufferEncoding, cb: TransformCallback): void {
         let data = Buffer.concat([this.buffer, chunk]);
         let header;
-        let length;
-        let commandId;
-        let checksum;
+        let length = 0;
+        let commandId: number;
+        let checksum: number;
         let tfResponse: any = {};
 
         while (data.length >= 2) {
             if (Buffer.compare(data.subarray(0, 1), Buffer.from(TFLunaCommandHeader)) === 0) {
                 header = data.readUInt8(0);
-                length = data.readUInt8(1);
-                commandId = data.readUInt8(2);
-                checksum = data.readUInt8(data.length - 1);
+                length = Number(data.readUInt8(1));
+                commandId = Number(data.readUInt8(2));
+                checksum = Number(data.readUInt8(data.length - 1));
 
                 this.tfLog([ModuleName, 'debug'], `hdr: ${header}, len: ${length}, cmd: ${commandId}, chk: ${checksum}`);
 

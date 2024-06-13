@@ -4,21 +4,21 @@ import {
 } from 'fastify';
 import fp from 'fastify-plugin';
 import { JsonSchemaToTsProvider } from '@fastify/type-provider-json-schema-to-ts';
+import IObserveRequestSchema from '../models/IObserveRequestSchema.json';
+import IControlRequestSchema from '../models/IControlRequestSchema.json';
+import IRpiPlcResponseSchema from '../models/IRpiPlcResponseSchema.json';
+import IServiceErrorMessageSchema from '../models/IServiceErrorMessageSchema.json';
 import {
-    IServiceErrorMessage,
-    IRpiPlcResponse,
-    IControlRequest,
     IObserveRequest,
-    IServiceErrorMessageSchema,
-    IRpiPlcResponseSchema,
-    IControlRequestSchema,
-    IObserveRequestSchema
-} from '@loopbox/types';
+    IControlRequest,
+    IRpiPlcResponse,
+    IServiceErrorMessage
+} from '../models/rpiPlcTypes';
 
 const RouteName = 'rpiPlcRouter';
 
 interface IRpiPlcReply {
-    '201': IRpiPlcResponse;
+    201: IRpiPlcResponse;
     '4xx': IServiceErrorMessage;
     '5xx': IServiceErrorMessage;
 }
@@ -35,43 +35,13 @@ const nliRouter: FastifyPluginAsync<IRpiPlcRouteOptions> = async (instance: Fast
             try {
                 const server = routeInstance.withTypeProvider<JsonSchemaToTsProvider>();
 
-                server.route<{ Body: IControlRequest; Reply: IRpiPlcReply }>({
-                    method: 'POST',
-                    url: '/control',
-                    schema: {
-                        body: IControlRequestSchema,
-                        response: {
-                            '201': IRpiPlcResponseSchema,
-                            '4xx': IServiceErrorMessageSchema,
-                            '5xx': IServiceErrorMessageSchema
-                        }
-                    },
-                    handler: async (request, response) => {
-                        server.log.info({ tags: [RouteName] }, `postProcessControlRoute`);
-
-                        try {
-                            const controlRequest = request.body as IControlRequest;
-                            if (!controlRequest.observeTargets) {
-                                throw routeInstance.httpErrors.badRequest('Request playload is missing required fields');
-                            }
-
-                            const controlResponse = await this.rpiPlcService.observe(controlRequest);
-
-                            response.status(201).send(controlResponse);
-                        }
-                        catch (ex) {
-                            throw routeInstance.httpErrors.badRequest(ex.message);
-                        }
-                    }
-                });
-
                 server.route<{ Body: IObserveRequest; Reply: IRpiPlcReply }>({
                     method: 'POST',
                     url: '/observe',
                     schema: {
                         body: IObserveRequestSchema,
                         response: {
-                            '201': IRpiPlcResponseSchema,
+                            201: IRpiPlcResponseSchema,
                             '4xx': IServiceErrorMessageSchema,
                             '5xx': IServiceErrorMessageSchema
                         }
@@ -80,17 +50,47 @@ const nliRouter: FastifyPluginAsync<IRpiPlcRouteOptions> = async (instance: Fast
                         server.log.info({ tags: [RouteName] }, `postObserveRoute`);
 
                         try {
-                            const observeRequest = request.body as IObserveRequest;
+                            const observeRequest = request.body;
                             if (!observeRequest.observeTargets) {
                                 throw routeInstance.httpErrors.badRequest('Request playload is missing required fields');
                             }
 
-                            const observeResponse = await this.rpiPlcService.observe(observeRequest);
+                            const observeResponse = server.rpiPlcService.observe(observeRequest);
 
-                            response.status(201).send(observeResponse);
+                            return response.status(201).send(observeResponse);
                         }
                         catch (ex) {
-                            throw routeInstance.httpErrors.badRequest(ex.message);
+                            throw routeInstance.httpErrors.badRequest(ex.message as string);
+                        }
+                    }
+                });
+
+                server.route<{ Body: IControlRequest; Reply: IRpiPlcReply }>({
+                    method: 'POST',
+                    url: '/control',
+                    schema: {
+                        body: IControlRequestSchema,
+                        response: {
+                            201: IRpiPlcResponseSchema,
+                            '4xx': IServiceErrorMessageSchema,
+                            '5xx': IServiceErrorMessageSchema
+                        }
+                    },
+                    handler: async (request, response) => {
+                        server.log.info({ tags: [RouteName] }, `postProcessControlRoute`);
+
+                        try {
+                            const controlRequest = request.body;
+                            if (!controlRequest.action) {
+                                throw routeInstance.httpErrors.badRequest('Request playload is missing required fields');
+                            }
+
+                            const controlResponse = await server.rpiPlcService.control(controlRequest);
+
+                            return response.status(201).send(controlResponse);
+                        }
+                        catch (ex) {
+                            throw routeInstance.httpErrors.badRequest(ex.message as string);
                         }
                     }
                 });

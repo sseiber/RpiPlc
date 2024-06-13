@@ -1,0 +1,108 @@
+{
+  "$ref": "#/definitions/IControlRequest",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "ControlRequestAction": {
+      "enum": [
+        "INDICATORLIGHT",
+        "INDICATORMODE",
+        "MEASUREMENT"
+      ],
+      "type": "string"
+    },
+    "GPIOState": {
+      "enum": [
+        0,
+        1
+      ],
+      "type": "number"
+    },
+    "IControlRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "$ref": "#/definitions/ControlRequestAction"
+        },
+        "data": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/IIndicatorLightAction"
+            },
+            {
+              "$ref": "#/definitions/IIndicatorLightModeAction"
+            },
+            {
+              "$ref": "#/definitions/ITfMeasurementAction"
+            }
+          ]
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    },
+    "IIndicatorLightAction": {
+      "additionalProperties": false,
+      "properties": {
+        "ledGreenState": {
+          "$ref": "#/definitions/GPIOState"
+        },
+        "ledRedState": {
+          "$ref": "#/definitions/GPIOState"
+        },
+        "ledYellowState": {
+          "$ref": "#/definitions/GPIOState"
+        }
+      },
+      "required": [
+        "ledRedState",
+        "ledYellowState",
+        "ledGreenState"
+      ],
+      "type": "object"
+    },
+    "IIndicatorLightModeAction": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "$ref": "#/definitions/IndicatorLightMode"
+        }
+      },
+      "required": [
+        "mode"
+      ],
+      "type": "object"
+    },
+    "ITfMeasurementAction": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "$ref": "#/definitions/TfMeasurementAction"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    },
+    "IndicatorLightMode": {
+      "enum": [
+        "AUTO",
+        "GREEN",
+        "YELLOWFLASHING",
+        "REDFLASHING",
+        "MANUAL"
+      ],
+      "type": "string"
+    },
+    "TfMeasurementAction": {
+      "enum": [
+        "START",
+        "STOP",
+        "SINGLE"
+      ],
+      "type": "string"
+    }
+  }
+}

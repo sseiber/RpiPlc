@@ -2,19 +2,22 @@
     "compilerOptions": {
         "rootDir": "./src",
         "outDir": "./dist",
+        "target": "ES2022",
+        "jsx": "react",
         "module": "CommonJS",
         "moduleResolution": "node",
-        "target": "ES2022",
-        "sourceMap": true,
-        "jsx": "react",
+        "resolveJsonModule": true,
         "declaration": true,
         "declarationMap": true,
+        "sourceMap": true,
+        "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,
-        "skipLibCheck": true,
-        "noImplicitAny": true,
+        // "strict": true,
+        "noImplicitAny": false,
+        "strictNullChecks": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
-        "strictNullChecks": true,
+        "skipLibCheck": true,
         "typeRoots": [
             "node_modules/@types"
         ]
@@ -22,7 +25,6 @@
     "compileOnSave": true,
     "include": [
         "eslint.config.mjs",
-        "node-libgpiod.d.ts",
         "src/**/*.ts"
     ]
 }

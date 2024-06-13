@@ -12,7 +12,7 @@ const stylisticRules = {
     '@stylistic/new-parens': 'error',
     '@stylistic/no-multiple-empty-lines': 'error',
     '@stylistic/quotes': ['error', 'single', { allowTemplateLiterals: true }],
-    '@stylistic/quote-props': ['error', 'consistent'],
+    '@stylistic/quote-props': ['error', 'as-needed', { 'unnecessary': false }],
     '@stylistic/semi': ['error', 'always'],
     '@stylistic/spaced-comment': ['error', 'always', { exceptions: ['-+'] }],
     '@stylistic/type-annotation-spacing': 'error'
@@ -21,6 +21,7 @@ const stylisticRules = {
 const typescriptRules = {
     'curly': 'error',
     'eqeqeq': ['error', 'always'],
+    '@typescript-eslint/explicit-function-return-type': ['error', { allowFunctionsWithoutTypeParameters: true }],
     '@typescript-eslint/explicit-member-accessibility': ['error', { accessibility: 'explicit', overrides: { constructors: 'no-public' } }],
     '@typescript-eslint/explicit-module-boundary-types': ['error', { allowArgumentsExplicitlyTypedAsAny: true }],
     'guard-for-in': 'error',
