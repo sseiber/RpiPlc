@@ -29,6 +29,26 @@
             "problemMatcher": [
                 "$tsc-watch"
             ]
+        },
+        {
+            "label": "bridge-to-kubernetes.resource",
+            "type": "bridge-to-kubernetes.resource",
+            "resource": "rpi-plc-service",
+            "resourceType": "service",
+            "ports": [
+                30010
+            ],
+            "targetCluster": "rpi-plc",
+            "targetNamespace": "default",
+            "useKubernetesServiceEnvironmentVariables": false
+        },
+        {
+            "label": "bridge-to-kubernetes.compound",
+            "dependsOn": [
+                "bridge-to-kubernetes.resource",
+                "${defaultBuildTask}"
+            ],
+            "dependsOrder": "sequence"
         }
     ]
 }

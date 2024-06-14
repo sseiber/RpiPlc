@@ -7,6 +7,31 @@
         {
             "type": "node",
             "request": "launch",
+            "name": "Launch Service with Kubernetes",
+            "console": "integratedTerminal",
+            "program": "${workspaceFolder}/src/index.ts",
+            "smartStep": true,
+            "showAsyncStacks": true,
+            "sourceMaps": true,
+            "preLaunchTask": "bridge-to-kubernetes.compound",
+            "outFiles": [
+                "${workspaceFolder}/dist/**/*.js"
+            ],
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "env": {
+                "NODE_ENV": "PC",
+                "DEBUG": "NONE",
+                "PORT": "9092",
+                "RPIPLC_SERVICE_STORAGE": "./storage",
+                "PLC_CONFIG_FILENAME": "plcConfig.json",
+                "OPCUA_CONFIG_FILENAME": "opcuaServerConfig.json"
+            }
+        },
+        {
+            "type": "node",
+            "request": "launch",
             "name": "Launch Service",
             "console": "integratedTerminal",
             "program": "${workspaceFolder}/src/index.ts",
@@ -21,10 +46,31 @@
                 "<node_internals>/**"
             ],
             "env": {
+                "NODE_ENV": "PC",
+                "DEBUG": "NONE",
                 "PORT": "9092",
-                "RPIPLC_SERVICE_STORAGE": "./setup/deployment",
-                "DEBUG": "NONE"
+                "RPIPLC_SERVICE_STORAGE": "./storage",
+                "PLC_CONFIG_FILENAME": "plcConfig.json",
+                "OPCUA_CONFIG_FILENAME": "opcuaServerConfig.json"
             }
+        },
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "Attach to Service",
+            "port": 30020,
+            "address": "10.10.16.105",
+            "localRoot": "${workspaceFolder}/dist",
+            "remoteRoot": "/app/dist",
+            "smartStep": true,
+            "showAsyncStacks": true,
+            "sourceMaps": true,
+            "outFiles": [
+                "${workspaceFolder}/dist/**/*.js"
+            ],
+            "skipFiles": [
+                "<node_internals>/**"
+            ]
         }
     ]
 }

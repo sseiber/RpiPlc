@@ -4,7 +4,7 @@
     "description": "Rpi sample plc and opcua server service",
     "main": "index.js",
     "scripts": {
-        "test": "node ./node_modules/jest/bin/jest.js",
+        "test": "echo \"TBD\" && exit 1",
         "eslint": "export ESLINT_USE_FLAT_CONFIG=true && eslint --config eslint.config.mjs .",
         "build": "node ./node_modules/typescript/bin/tsc -p .",
         "dockerbuild": "npm run build && node ./.scripts/dockerBuild.js -b -r .",
@@ -49,21 +49,5 @@
         "ts-json-schema-generator": "^2.3.0",
         "typescript": "^5.4.5",
         "typescript-eslint": "^8.0.0-alpha.30"
-    },
-    "jest": {
-        "rootDir": "./src/",
-        "testRegex": "(/__tests__/.*|\\.(test|spec))\\.(ts|tsx)$",
-        "moduleFileExtensions": [
-            "ts",
-            "tsx",
-            "js",
-            "json"
-        ],
-        "transform": {
-            ".tsx?": "ts-jest"
-        },
-        "moduleNameMapper": {
-            "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "./__mocks__/fileMock.js"
-        }
     }
 }
