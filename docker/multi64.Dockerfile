@@ -1,9 +1,9 @@
-FROM node:18-slim
+FROM node:20-slim
 ENV WORKINGDIR /app
 WORKDIR ${WORKINGDIR}
 
 ADD package.json ${WORKINGDIR}/package.json
-ADD .eslintrc.json ${WORKINGDIR}/.eslintrc.json
+ADD eslint.config.mjs ${WORKINGDIR}/eslint.config.mjs
 ADD tsconfig.json ${WORKINGDIR}/tsconfig.json
 ADD setup ${WORKINGDIR}/setup
 ADD .scripts ${WORKINGDIR}/.scripts
@@ -13,7 +13,7 @@ RUN npm install -q && \
     npm run build && \
     npm run eslint && \
     npm prune --production && \
-    rm -f .eslintrc.json && \
+    rm -f eslint.config.mjs && \
     rm -f tsconfig.json && \
     rm -rf setup \
     rm -rf .scripts \

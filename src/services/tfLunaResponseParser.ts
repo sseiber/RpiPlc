@@ -25,7 +25,7 @@ import {
     ITFLunaVersionResponse
 } from '../models/rpiPlcTypes';
 
-const ModuleName = 'TFLunaResponseParser';
+const ModuleName = 'tfLunaResponseParser';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface TFLunaResponseOptions extends TransformOptions {

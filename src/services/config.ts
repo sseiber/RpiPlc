@@ -16,8 +16,6 @@ interface IRpiPlcEnv {
     DEBUG: string;
     PORT: string;
     RPIPLC_SERVICE_STORAGE: string;
-    PLC_CONFIG_FILENAME: string;
-    OPCUA_CONFIG_FILENAME: string;
 }
 
 const configSchema: JSONSchemaType<IRpiPlcEnv> = {
@@ -38,23 +36,13 @@ const configSchema: JSONSchemaType<IRpiPlcEnv> = {
         RPIPLC_SERVICE_STORAGE: {
             type: 'string',
             default: '9092'
-        },
-        PLC_CONFIG_FILENAME: {
-            type: 'string',
-            default: 'plcConfig.json'
-        },
-        OPCUA_CONFIG_FILENAME: {
-            type: 'string',
-            default: 'opcuaServerConfig.json'
         }
     },
     required: [
         'NODE_ENV',
         'DEBUG',
         'PORT',
-        'RPIPLC_SERVICE_STORAGE',
-        'PLC_CONFIG_FILENAME',
-        'OPCUA_CONFIG_FILENAME'
+        'RPIPLC_SERVICE_STORAGE'
     ]
 };
 

@@ -30,14 +30,16 @@ import {
     IndicatorLightMode,
     IIndicatorLightModeAction,
     TfMeasurementAction,
-    ITfMeasurementAction
+    ITfMeasurementAction,
+    TFLunaSoftResetCommand,
+    ITFLunaSoftResetResponse
 } from '../models/rpiPlcTypes';
 import { SerialPort } from 'serialport';
 import { TFLunaResponseParser } from './tfLunaResponseParser';
 import * as gpio from 'node-libgpiod';
 import { sleep } from '../utils';
 
-const ModuleName = 'PlcController';
+const ModuleName = 'plcController';
 
 class PlcDataAccessor {
     public get: () => any;
@@ -71,6 +73,7 @@ export class PlcController {
         this.tfLunaStatus = {
             restoreDefaultSettingsStatus: 0,
             saveCurrentSettingsStatus: 0,
+            softResetStatus: 0,
             baudRate: 0,
             sampleRate: 0,
             version: '0.0.0',
@@ -80,7 +83,7 @@ export class PlcController {
     }
 
     public async init(): Promise<void> {
-        // this.server.log.info([ModuleName, 'info'], `${ModuleName} initialization: libgpiod version: ${gpio.version()}`);
+        this.server.log.info({ tags: [ModuleName] }, `${ModuleName} initialization`);
 
         try {
             // wait for up to 15 seconds for GPIO to become available.
@@ -88,25 +91,25 @@ export class PlcController {
             // this is a mitigation for the kubelet orchestrator which may have not finished
             // terminating a previous version of the container before starting this new instance.
             for (let initCount = 0; initCount < 5 && !gpio.available(); initCount++) {
-                this.server.log.info([ModuleName, 'info'], `${ModuleName} gpio is not available, check 1/${initCount + 1}...`);
-
                 await sleep(3000);
+
+                this.server.log.info({ tags: [ModuleName] }, `${ModuleName} gpio is not available, check 1/${initCount + 1}...`);
             }
 
             if (!gpio.available()) {
                 throw new Error('GPIO is not available');
             }
 
-            this.server.log.info([ModuleName, 'info'], `${ModuleName} libgpiod is available`);
+            this.server.log.info({ tags: [ModuleName] }, `${ModuleName} libgpiod is available`);
 
             this.bcm2835 = new gpio.Chip(0);
 
-            this.server.log.info([ModuleName, 'info'], `Initializing plc controller GPIO pins`);
+            this.server.log.info({ tags: [ModuleName] }, `Initializing plc controller GPIO pins`);
 
             for (const [plcDeviceConfigKey, plcDeviceConfigValue] of Object.entries(this.plcDeviceConfig)) {
                 switch (plcDeviceConfigKey) {
                     case 'indicatorLightDeviceRed':
-                        this.server.log.info([ModuleName, 'info'], `Initializing ${plcDeviceConfigKey} pin: ${plcDeviceConfigValue.pin}`);
+                        this.server.log.info({ tags: [ModuleName] }, `Initializing ${plcDeviceConfigKey} pin: ${plcDeviceConfigValue.pin}`);
 
                         this.indicatorLightRedPin = new gpio.Line(this.bcm2835, Number(plcDeviceConfigValue.pin));
                         if (plcDeviceConfigValue.mode === GPIOPinMode.Output) {
@@ -124,7 +127,7 @@ export class PlcController {
                         break;
 
                     case 'indicatorLightDeviceYellow':
-                        this.server.log.info([ModuleName, 'info'], `Initializing ${plcDeviceConfigKey} pin: ${plcDeviceConfigValue.pin}`);
+                        this.server.log.info({ tags: [ModuleName] }, `Initializing ${plcDeviceConfigKey} pin: ${plcDeviceConfigValue.pin}`);
 
                         this.indicatorLightYellowPin = new gpio.Line(this.bcm2835, Number(plcDeviceConfigValue.pin));
                         if (plcDeviceConfigValue.mode === GPIOPinMode.Output) {
@@ -142,7 +145,7 @@ export class PlcController {
                         break;
 
                     case 'indicatorLightDeviceGreen':
-                        this.server.log.info([ModuleName, 'info'], `Initializing ${plcDeviceConfigKey} pin: ${plcDeviceConfigValue.pin}`);
+                        this.server.log.info({ tags: [ModuleName] }, `Initializing ${plcDeviceConfigKey} pin: ${plcDeviceConfigValue.pin}`);
 
                         this.indicatorLightGreenPin = new gpio.Line(this.bcm2835, Number(plcDeviceConfigValue.pin));
                         if (plcDeviceConfigValue.mode === GPIOPinMode.Output) {
@@ -160,7 +163,7 @@ export class PlcController {
                         break;
 
                     case 'tfLunaDevice':
-                        this.server.log.info([ModuleName, 'info'], `Initializing tfLuna device serial port: ${plcDeviceConfigValue.serialPort}`);
+                        this.server.log.info({ tags: [ModuleName] }, `Initializing tfLuna device serial port: ${plcDeviceConfigValue.serialPort}`);
 
                         this.serialPort = await this.openPort(this.plcDeviceConfig.tfLunaDevice.serialPort, this.plcDeviceConfig.tfLunaDevice.buadRate);
 
@@ -189,7 +192,7 @@ export class PlcController {
                         break;
 
                     default:
-                        this.server.log.warn([ModuleName, 'warning'], `Unknown plc device config: ${plcDeviceConfigKey}`);
+                        this.server.log.warn({ tags: [ModuleName] }, `Unknown plc device config: ${plcDeviceConfigKey}`);
                         break;
                 }
             }
@@ -199,7 +202,7 @@ export class PlcController {
             }, 500);
         }
         catch (ex) {
-            this.server.log.error([ModuleName, 'error'], `Error during init: ${ex.message}`);
+            this.server.log.error({ tags: [ModuleName] }, `Error during init: ${ex.message}`);
         }
     }
 
@@ -236,7 +239,7 @@ export class PlcController {
     }
 
     public async tfMeasurementControl(tfMeasurementaction: ITfMeasurementAction): Promise<void> {
-        this.server.log.info([ModuleName, 'info'], `TFLuna measurement`);
+        this.server.log.info({ tags: [ModuleName] }, `TFLuna measurement`);
 
         try {
             switch (tfMeasurementaction.action) {
@@ -253,12 +256,12 @@ export class PlcController {
                     break;
 
                 default:
-                    this.server.log.info([ModuleName, 'info'], `TFLuna measurement action not recognized: ${tfMeasurementaction.action as string}`);
+                    this.server.log.info({ tags: [ModuleName] }, `TFLuna measurement action not recognized: ${tfMeasurementaction.action as string}`);
                     break;
             }
         }
         catch (ex) {
-            this.server.log.error([ModuleName, 'error'], `Error during TFLuna measurement control: ${ex.message}`);
+            this.server.log.error({ tags: [ModuleName] }, `Error during TFLuna measurement control: ${ex.message}`);
         }
     }
 
@@ -276,11 +279,11 @@ export class PlcController {
                 status = true;
             }
             else {
-                this.server.log.info([ModuleName, 'info'], `GPIO access is unavailable`);
+                this.server.log.info({ tags: [ModuleName] }, `GPIO access is unavailable`);
             }
         }
         catch (ex) {
-            this.server.log.error([ModuleName, 'error'], `Error during indicator light control: ${ex.message}`);
+            this.server.log.error({ tags: [ModuleName] }, `Error during indicator light control: ${ex.message}`);
         }
 
         return status;
@@ -295,11 +298,11 @@ export class PlcController {
                 status = true;
             }
             else {
-                this.server.log.info([ModuleName, 'info'], `GPIO access is unavailable`);
+                this.server.log.info({ tags: [ModuleName] }, `GPIO access is unavailable`);
             }
         }
         catch (ex) {
-            this.server.log.error([ModuleName, 'error'], `Error during indicator mode control: ${ex.message}`);
+            this.server.log.error({ tags: [ModuleName] }, `Error during indicator mode control: ${ex.message}`);
         }
 
         return status;
@@ -350,7 +353,7 @@ export class PlcController {
                 break;
 
             default:
-                this.server.log.warn([ModuleName, 'warning'], `Unknown indicator mode: ${this.indicatorLightMode as string}`);
+                this.server.log.warn({ tags: [ModuleName] }, `Unknown indicator mode: ${this.indicatorLightMode as string}`);
         }
     }
 
@@ -376,15 +379,15 @@ export class PlcController {
     }
 
     private portError(err: Error): void {
-        this.server.log.error([ModuleName, 'error'], `Serialport Error: ${err.message}`);
+        this.server.log.error({ tags: [ModuleName] }, `Serialport Error: ${err.message}`);
     }
 
     private portOpen(): void {
-        this.server.log.info([ModuleName, 'info'], `Serialport open`);
+        this.server.log.info({ tags: [ModuleName] }, `Serialport open`);
     }
 
     private portClosed(): void {
-        this.server.log.info([ModuleName, 'info'], `Serialport closed`);
+        this.server.log.info({ tags: [ModuleName] }, `Serialport closed`);
     }
 
     private tfLunaResponseParserHandler(data: ITFLunaResponse): void {
@@ -394,48 +397,54 @@ export class PlcController {
                 case TFLunaRestoreDefaultSettingsCommand:
                     this.tfLunaStatus.restoreDefaultSettingsStatus = (data as ITFLunaRestoreDefaultSettingsResponse).status;
 
-                    this.server.log.info([ModuleName, 'info'], `Response: restore default settings: ${this.tfLunaStatus.restoreDefaultSettingsStatus}`);
+                    this.server.log.info({ tags: [ModuleName] }, `TFLunaResponse: restore default settings: ${this.tfLunaStatus.restoreDefaultSettingsStatus}`);
                     break;
 
                 case TFLunaSaveCurrentSettingsCommand:
                     this.tfLunaStatus.saveCurrentSettingsStatus = (data as ITFLunaSaveCurrentSettingsResponse).status;
 
-                    this.server.log.info([ModuleName, 'info'], `Response: save current settings: ${this.tfLunaStatus.saveCurrentSettingsStatus}`);
+                    this.server.log.info({ tags: [ModuleName] }, `TFLunaResponse: save current settings: ${this.tfLunaStatus.saveCurrentSettingsStatus}`);
+                    break;
+
+                case TFLunaSoftResetCommand:
+                    this.tfLunaStatus.softResetStatus = (data as ITFLunaSoftResetResponse).status;
+
+                    this.server.log.info({ tags: [ModuleName] }, `TFLunaResponse: soft reset: ${this.tfLunaStatus.softResetStatus}`);
                     break;
 
                 case TFLunaSetBaudRateCommand:
                     this.tfLunaStatus.baudRate = (data as ITFLunaBaudResponse).baudRate;
 
-                    this.server.log.info([ModuleName, 'info'], `Response: current baudRate: ${this.tfLunaStatus.baudRate}`);
+                    this.server.log.info({ tags: [ModuleName] }, `TFLunaResponse: current baudRate: ${this.tfLunaStatus.baudRate}`);
                     break;
 
                 case TFLunaSetSampleRateCommand:
                     this.tfLunaStatus.sampleRate = (data as ITFLunaSampleRateResponse).sampleRate;
 
-                    this.server.log.info([ModuleName, 'info'], `Response: set sample rate: ${this.tfLunaStatus.sampleRate}`);
+                    this.server.log.info({ tags: [ModuleName] }, `TFLunaResponse: set sample rate: ${this.tfLunaStatus.sampleRate}`);
                     break;
 
                 case TFLunaGetVersionCommand:
                     this.tfLunaStatus.version = (data as ITFLunaVersionResponse).version;
 
-                    this.server.log.info([ModuleName, 'info'], `Response: get current version: ${this.tfLunaStatus.version}`);
+                    this.server.log.info({ tags: [ModuleName] }, `TFLunaResponse: get current version: ${this.tfLunaStatus.version}`);
                     break;
 
                 case TFLunaMeasurementCommand:
                     this.tfLunaStatus.measurement = (data as ITFLunaMeasureResponse).distCm;
 
                     if (this.activeObserveTargets[ObserveTarget.Measurements]) {
-                        this.server.log.info([ModuleName, 'info'], `Response: measurement: ${this.tfLunaStatus.measurement}`);
+                        this.server.log.info({ tags: [ModuleName] }, `TFLunaResponse: measurement: ${this.tfLunaStatus.measurement}`);
                     }
                     break;
 
                 default:
-                    this.server.log.warn([ModuleName, 'debug'], `Response: unknown response: ${commandId}`);
+                    this.server.log.warn({ tags: [ModuleName] }, `TFLunaResponse: unknown response: ${commandId}`);
                     break;
             }
         }
         else {
-            this.server.log.error([ModuleName, 'error'], `Response: received unknown response data...`);
+            this.server.log.error({ tags: [ModuleName] }, `TFLunaResponse: received unknown response data...`);
         }
     }
 
@@ -472,7 +481,7 @@ export class PlcController {
     }
 
     // private async restoreTFLunaSettings(): Promise<void> {
-    //     this.server.log.info([ModuleName, 'info'], `Restore default settings`);
+    //     this.server.log.info({ tags: [ModuleName] }, `Restore default settings`);
 
     //     await this.writeTFLunaCommand(Buffer.from(TFLunaRestoreDefaultSettingsPrefix.concat([0x00])));
 
@@ -480,7 +489,7 @@ export class PlcController {
     // }
 
     private async saveTFLunaSettings(): Promise<void> {
-        this.server.log.info([ModuleName, 'info'], `Save current settings`);
+        this.server.log.info({ tags: [ModuleName] }, `Save current settings`);
 
         await this.writeTFLunaCommand(Buffer.from(TFLunaSaveCurrentSettingsPrefix.concat([0x00])));
 
@@ -488,7 +497,7 @@ export class PlcController {
     }
 
     private async resetTFLuna(): Promise<void> {
-        this.server.log.info([ModuleName, 'info'], `Soft reset`);
+        this.server.log.info({ tags: [ModuleName] }, `Soft reset`);
 
         await this.writeTFLunaCommand(Buffer.from(TFLunaSoftResetPrefix.concat([0x00])));
 
@@ -496,7 +505,7 @@ export class PlcController {
     }
 
     private async setTFLunaBaudRate(baudRate = 115200): Promise<void> {
-        this.server.log.info([ModuleName, 'info'], `Set baud rate request with value: ${baudRate}`);
+        this.server.log.info({ tags: [ModuleName] }, `Set baud rate request with value: ${baudRate}`);
 
         const data1 = (baudRate & 0xFF);
         const data2 = (baudRate & 0xFF00) >> 8;
@@ -509,7 +518,7 @@ export class PlcController {
     }
 
     private async setTFLunaSampleRate(sampleRate: number): Promise<void> {
-        this.server.log.info([ModuleName, 'info'], `Set sample rate request with value: ${sampleRate}`);
+        this.server.log.info({ tags: [ModuleName] }, `Set sample rate request with value: ${sampleRate}`);
 
         await this.writeTFLunaCommand(Buffer.from(TFLunaSetSampleRatePrefix.concat([sampleRate, 0x00, 0x00])));
 
@@ -517,7 +526,7 @@ export class PlcController {
     }
 
     private async getTFLunaVersion(): Promise<void> {
-        this.server.log.info([ModuleName, 'info'], `Get version request`);
+        this.server.log.info({ tags: [ModuleName] }, `Get version request`);
 
         await this.writeTFLunaCommand(Buffer.from(TFLunaGetVersionPrefix.concat([0x00])));
 
@@ -535,14 +544,14 @@ export class PlcController {
             await new Promise<void>((resolve, reject) => {
                 this.serialPort.write(writeData, (writeError: Error) => {
                     if (writeError) {
-                        this.server.log.error([ModuleName, 'error'], `Serial port write error: ${writeError.message}`);
+                        this.server.log.error({ tags: [ModuleName] }, `Serial port write error: ${writeError.message}`);
 
                         return reject(writeError);
                     }
 
                     this.serialPort.drain((drainError) => {
                         if (drainError) {
-                            this.server.log.error([ModuleName, 'error'], `Serial port drain error: ${drainError.message}`);
+                            this.server.log.error({ tags: [ModuleName] }, `Serial port drain error: ${drainError.message}`);
 
                             return reject(drainError);
                         }
@@ -553,7 +562,7 @@ export class PlcController {
             });
         }
         catch (ex) {
-            this.server.log.error([ModuleName, 'error'], `Serial port write error: ${ex.message}`);
+            this.server.log.error({ tags: [ModuleName] }, `Serial port write error: ${ex.message}`);
         }
     }
 }

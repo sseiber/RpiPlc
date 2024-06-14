@@ -16,9 +16,8 @@ ENV WORKINGDIR /app
 WORKDIR ${WORKINGDIR}
 
 ADD package.json ${WORKINGDIR}/package.json
-ADD .eslintrc.json ${WORKINGDIR}/.eslintrc.json
+ADD eslint.config.mjs ${WORKINGDIR}/eslint.config.mjs
 ADD tsconfig.json ${WORKINGDIR}/tsconfig.json
-ADD node-libgpiod.d.ts ${WORKINGDIR}/node-libgpiod.d.ts
 ADD setup ${WORKINGDIR}/setup
 ADD .scripts ${WORKINGDIR}/.scripts
 ADD src ${WORKINGDIR}/src

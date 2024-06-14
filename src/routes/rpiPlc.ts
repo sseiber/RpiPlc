@@ -3,7 +3,6 @@ import {
     FastifyPluginAsync
 } from 'fastify';
 import fp from 'fastify-plugin';
-import { JsonSchemaToTsProvider } from '@fastify/type-provider-json-schema-to-ts';
 import IObserveRequestSchema from '../models/IObserveRequestSchema.json';
 import IControlRequestSchema from '../models/IControlRequestSchema.json';
 import IRpiPlcResponseSchema from '../models/IRpiPlcResponseSchema.json';
@@ -27,15 +26,13 @@ interface IRpiPlcReply {
 export interface IRpiPlcRouteOptions {
 }
 
-const nliRouter: FastifyPluginAsync<IRpiPlcRouteOptions> = async (instance: FastifyInstance, options: IRpiPlcRouteOptions): Promise<void> => {
-    instance.log.info({ tags: [RouteName] }, `Registering RpiPlc routes...`);
+const nliRouter: FastifyPluginAsync<IRpiPlcRouteOptions> = async (fastifyInstance: FastifyInstance, options: IRpiPlcRouteOptions): Promise<void> => {
+    fastifyInstance.log.info({ tags: [RouteName] }, `Registering RpiPlc routes...`);
 
-    await instance.register(async (routeInstance, _routeOptions) => {
+    await fastifyInstance.register(async (routeInstance, _routeOptions) => {
         await new Promise<void>((resolve, reject) => {
             try {
-                const server = routeInstance.withTypeProvider<JsonSchemaToTsProvider>();
-
-                server.route<{ Body: IObserveRequest; Reply: IRpiPlcReply }>({
+                routeInstance.route<{ Body: IObserveRequest; Reply: IRpiPlcReply }>({
                     method: 'POST',
                     url: '/observe',
                     schema: {
@@ -47,7 +44,7 @@ const nliRouter: FastifyPluginAsync<IRpiPlcRouteOptions> = async (instance: Fast
                         }
                     },
                     handler: async (request, response) => {
-                        server.log.info({ tags: [RouteName] }, `postObserveRoute`);
+                        routeInstance.log.info({ tags: [RouteName] }, `postObserveRoute`);
 
                         try {
                             const observeRequest = request.body;
@@ -55,7 +52,7 @@ const nliRouter: FastifyPluginAsync<IRpiPlcRouteOptions> = async (instance: Fast
                                 throw routeInstance.httpErrors.badRequest('Request playload is missing required fields');
                             }
 
-                            const observeResponse = server.rpiPlcService.observe(observeRequest);
+                            const observeResponse = routeInstance.rpiPlcService.observe(observeRequest);
 
                             return response.status(201).send(observeResponse);
                         }
@@ -65,7 +62,7 @@ const nliRouter: FastifyPluginAsync<IRpiPlcRouteOptions> = async (instance: Fast
                     }
                 });
 
-                server.route<{ Body: IControlRequest; Reply: IRpiPlcReply }>({
+                routeInstance.route<{ Body: IControlRequest; Reply: IRpiPlcReply }>({
                     method: 'POST',
                     url: '/control',
                     schema: {
@@ -77,7 +74,7 @@ const nliRouter: FastifyPluginAsync<IRpiPlcRouteOptions> = async (instance: Fast
                         }
                     },
                     handler: async (request, response) => {
-                        server.log.info({ tags: [RouteName] }, `postProcessControlRoute`);
+                        routeInstance.log.info({ tags: [RouteName] }, `postProcessControlRoute`);
 
                         try {
                             const controlRequest = request.body;
@@ -85,7 +82,7 @@ const nliRouter: FastifyPluginAsync<IRpiPlcRouteOptions> = async (instance: Fast
                                 throw routeInstance.httpErrors.badRequest('Request playload is missing required fields');
                             }
 
-                            const controlResponse = await server.rpiPlcService.control(controlRequest);
+                            const controlResponse = await routeInstance.rpiPlcService.control(controlRequest);
 
                             return response.status(201).send(controlResponse);
                         }
@@ -98,7 +95,7 @@ const nliRouter: FastifyPluginAsync<IRpiPlcRouteOptions> = async (instance: Fast
                 return resolve();
             }
             catch (ex) {
-                instance.log.error({ tags: [RouteName] }, `Registering RpiPlc routes failed: ${ex.message}`);
+                fastifyInstance.log.error({ tags: [RouteName] }, `Registering RpiPlc routes failed: ${ex.message}`);
 
                 return reject(ex as Error);
             }

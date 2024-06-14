@@ -62,7 +62,7 @@ export interface IControlRequest {
 export interface IRpiPlcResponse {
     succeeded: boolean;
     message: string;
-    status: boolean;
+    data?: any;
 }
 
 export interface IServiceErrorMessage {
@@ -111,6 +111,7 @@ export const enum GPIOState {
 export interface ITFLunaStatus {
     restoreDefaultSettingsStatus: number;
     saveCurrentSettingsStatus: number;
+    softResetStatus: number;
     baudRate: number;
     sampleRate: number;
     version: string;

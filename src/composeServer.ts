@@ -4,17 +4,25 @@ import fastify, {
 } from 'fastify';
 import autoload from '@fastify/autoload';
 import sensible from '@fastify/sensible';
-import { join as pathJoin } from 'path';
+import {
+    join as pathJoin,
+    resolve as pathResolve
+} from 'path';
+import * as fse from 'fs-extra';
+import { IRpiPlcConfig } from './models/rpiPlcTypes';
 
-// import {
-//     ITFLunaResponse,
-// } from './models/tfLunaTypes';
+const ModuleName = 'composeServer';
+const RootConfig = 'rootConfig';
+
+declare module 'fastify' {
+    interface FastifyInstance {
+        [RootConfig]: IRpiPlcConfig;
+    }
+}
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface composeOptions extends FastifyServerOptions {
 }
-
-const ModuleName = 'ComposeServer';
 
 const composeServer = async (options: composeOptions = {}): Promise<FastifyInstance> => {
     try {
@@ -22,12 +30,24 @@ const composeServer = async (options: composeOptions = {}): Promise<FastifyInsta
 
         server.log.info({ tags: [ModuleName] }, `Composing server instance...`);
 
+        const storageRoot = process.env.RPIPLC_SERVICE_STORAGE
+            ? pathResolve(process.env.RPIPLC_SERVICE_STORAGE)
+            : '/rpi-plc/data';
+
+        const plcConfig = fse.readJsonSync(pathResolve(storageRoot, process.env.PLC_CONFIG_FILENAME ?? 'plcConfig.json'));
+        const opcuaServerConfig = fse.readJSONSync(pathResolve(storageRoot, process.env.OPCUA_CONFIG_FILENAME ?? 'opcuaServerConfig.json'));
+
+        server.decorate(RootConfig, {
+            storageRoot,
+            plcDeviceConfig: plcConfig,
+            opcuaServerOptions: opcuaServerConfig.serverConfig,
+            assetRootConfig: opcuaServerConfig.assetRootConfig
+        });
+
         await server.register(sensible);
 
         // server.log.info({ tags: [ModuleName] }, `🚀 Adding shared schema`);
         server.log.warn({ tags: [ModuleName] }, `NEED TO ADD SHARED SCHEMA`);
-
-        // server.addSchema(ITFLunaResponse);
 
         server.log.info({ tags: [ModuleName] }, `Registering services`);
 

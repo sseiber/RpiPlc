@@ -1,18 +1,9 @@
 import { FastifyInstance } from 'fastify';
 import { Server, IncomingMessage, ServerResponse } from 'http';
-import { resolve as pathResolve } from 'path';
-import * as fse from 'fs-extra';
 import composeServer from './composeServer';
 import { forget } from './utils';
-import { IRpiPlcConfig } from './models/rpiPlcTypes';
 
 const ModuleName = 'main';
-
-declare module 'fastify' {
-    interface FastifyInstance {
-        [ModuleName]: IRpiPlcConfig;
-    }
-}
 
 process.on('unhandledRejection', (err) => {
     // eslint-disable-next-line no-console
@@ -66,20 +57,6 @@ async function start() {
         });
 
         server.log.info({ tags: [ModuleName] }, `🚀 Server instance started`);
-
-        const storageRoot = server.config.RPIPLC_SERVICE_STORAGE
-            ? pathResolve(server.config.RPIPLC_SERVICE_STORAGE)
-            : '/rpi-plc/data';
-
-        const plcConfig = fse.readJsonSync(pathResolve(storageRoot, server.config.PLC_CONFIG_FILENAME));
-        const opcuaServerConfig = fse.readJSONSync(pathResolve(storageRoot, server.config.OPCUA_CONFIG_FILENAME));
-
-        server.decorate(ModuleName, {
-            storageRoot,
-            plcDeviceConfig: plcConfig,
-            opcuaServerOptions: opcuaServerConfig.serverConfig,
-            assetRootConfig: opcuaServerConfig.assetRootConfig
-        });
 
         const PORT = (server.config.PORT ?? process.env.PORT ?? process.env.port ?? process.env.PORT0 ?? process.env.port0) ?? '9092';
 

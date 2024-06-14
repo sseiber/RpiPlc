@@ -131,7 +131,7 @@
                 "inputArguments": [
                     {
                         "name": "mode",
-                        "description": "Specifies the indicator light mode",
+                        "description": "AUTO, GREEN, YELLOWFLASHING, REDFLASHING, MANUAL",
                         "dataTypeName": "String"
                     }
                 ],
@@ -155,7 +155,7 @@
                 "inputArguments": [
                     {
                         "name": "control",
-                        "description": "Control action STOP, START, or SINGLE",
+                        "description": "STOP, START, SINGLE",
                         "dataTypeName": "String"
                     }
                 ],

@@ -29,7 +29,7 @@ import {
 import { PlcController } from './plcController';
 import { IndicatorLightMode } from '../models/rpiPlcTypes';
 
-const ModuleName = 'RpiPlcOpcuaServer';
+const ModuleName = 'rpiPlcOpcuaServer';
 
 export class RpiPlcOpcuaServer {
     private server: FastifyInstance;
@@ -55,10 +55,10 @@ export class RpiPlcOpcuaServer {
     }
 
     public async start(): Promise<void> {
-        this.server.log.info([ModuleName, 'info'], `Instantiating opcua server`);
+        this.server.log.info({ tags: [ModuleName] }, `Initializing OPCUA server`);
 
         try {
-            const configRoot = pathJoin(this.server.main.storageRoot, '.config');
+            const configRoot = pathJoin(this.server.rootConfig.storageRoot, '.config');
             fse.ensureDirSync(configRoot);
 
             // const pkiRoot = pathJoin(configRoot, 'PKI');
@@ -73,22 +73,22 @@ export class RpiPlcOpcuaServer {
             // const opcuaServerOptions = await this.createServerSelfSignedCertificate(pathJoin(pkiRoot, 'certificate.pem'));
 
             this.opcuaServer = new OPCUAServer({
-                ...this.server.main.opcuaServerOptions
-                // certificateFile: pathJoin(this.server.settings.app.rpiPlc.storageRoot, 'rpi-plc.crt'), // use built-in auto-created cert functionality
-                // privateKeyFile: pathJoin(this.server.settings.app.rpiPlc.storageRoot, 'rpi-plc.key')
+                ...this.server.rootConfig.opcuaServerOptions
+                // certificateFile: pathJoin(this.server.rootConfig.storageRoot, 'rpi-plc.crt'), // use built-in auto-created cert functionality
+                // privateKeyFile: pathJoin(this.server.rootConfig.storageRoot, 'rpi-plc.key')
             });
 
             await this.opcuaServer.initialize();
 
             this.constructAddressSpace();
 
-            this.server.log.info([ModuleName, 'info'], `Starting server...`);
+            this.server.log.info({ tags: [ModuleName] }, `Starting OPCUA server...`);
             await this.opcuaServer.start();
 
-            this.server.log.info([ModuleName, 'info'], `Server started listening on port: ${this.opcuaServer.endpoints[0].port}`);
+            this.server.log.info({ tags: [ModuleName] }, `OPCUA server started listening on port: ${this.opcuaServer.endpoints[0].port}`);
         }
         catch (ex) {
-            this.server.log.error([ModuleName, 'error'], `Error during server startup: ${ex.message}`);
+            this.server.log.error({ tags: [ModuleName] }, `Error during OPCUA server startup: ${ex.message}`);
         }
     }
 
@@ -103,14 +103,14 @@ export class RpiPlcOpcuaServer {
             endpoint = this.opcuaServer?.endpoints[0]?.endpointDescriptions()[0]?.endpointUrl;
         }
         catch (ex) {
-            this.server.log.error([ModuleName, 'error'], `Error getting server endpoint - may be another running instance at this port: ${this.server.main.opcuaServerOptions?.port}, ${ex.message}`);
+            this.server.log.error({ tags: [ModuleName] }, `Error getting server endpoint - may be another running instance at this port: ${this.server.rootConfig.opcuaServerOptions?.port}, ${ex.message}`);
         }
 
         return endpoint ?? '';
     }
 
     // private async createServerSelfSignedCertificate(selfSignedCertificatePath: string): Promise<OPCUAServerOptions> {
-    //     this.server.log.info([ModuleName, 'info'], `createServerSelfSignedCertificate`);
+    //     this.server.log.info({ tags: [ModuleName] }, `createServerSelfSignedCertificate`);
 
     //     const opcuaServerOptions = {
     //         ...this.server.settings.app.rpiPlc.serverConfig,
@@ -123,7 +123,7 @@ export class RpiPlcOpcuaServer {
 
     //     try {
     //         if (!fse.pathExistsSync(opcuaServerOptions.certificateFile)) {
-    //             this.server.log.info([ModuleName, 'info'], `Creating new certificate file:`);
+    //             this.server.log.info({ tags: [ModuleName] }, `Creating new certificate file:`);
 
     //             const certFileRequest = {
     //                 applicationUri: opcuaServerOptions.serverInfo.applicationUri,
@@ -135,16 +135,16 @@ export class RpiPlcOpcuaServer {
     //                 validity: 365 * 10
     //             };
 
-    //             this.server.log.info([ModuleName, 'info'], `Self-signed certificate file request params:\n${JSON.stringify(certFileRequest, null, 2)}\n`);
+    //             this.server.log.info({ tags: [ModuleName] }, `Self-signed certificate file request params:\n${JSON.stringify(certFileRequest, null, 2)}\n`);
 
     //             await this.serverCertificateManager.createSelfSignedCertificate(certFileRequest);
     //         }
     //         else {
-    //             this.server.log.info([ModuleName, 'info'], `Using existing certificate file at: ${opcuaServerOptions.certificateFile}`);
+    //             this.server.log.info({ tags: [ModuleName] }, `Using existing certificate file at: ${opcuaServerOptions.certificateFile}`);
     //         }
     //     }
     //     catch (ex) {
-    //         this.server.log.error([ModuleName, 'error'], `Error creating server self signed certificate: ${ex.message}`);
+    //         this.server.log.error({ tags: [ModuleName] }, `Error creating server self signed certificate: ${ex.message}`);
     //     }
 
     //     return opcuaServerOptions;
@@ -175,23 +175,23 @@ export class RpiPlcOpcuaServer {
             });
 
             this.assetsRoot = this.localServerNamespace.addObject({
-                browseName: this.server.main.assetRootConfig.rootFolderName,
-                displayName: this.server.main.assetRootConfig.rootFolderName,
+                browseName: this.server.rootConfig.assetRootConfig.rootFolderName,
+                displayName: this.server.rootConfig.assetRootConfig.rootFolderName,
                 componentOf: this.customLocationRoot,
                 notifierOf: this.customLocationRoot
             });
 
-            this.server.log.info([ModuleName, 'info'], `Processing server configuration...`);
+            this.server.log.info({ tags: [ModuleName] }, `Processing server configuration...`);
             this.createAssets();
         }
         catch (ex) {
-            this.server.log.error([ModuleName, 'error'], `Error while constructing server address space: ${ex.message}`);
+            this.server.log.error({ tags: [ModuleName] }, `Error while constructing server address space: ${ex.message}`);
         }
     }
 
     private createAssets(): void {
         try {
-            const assetConfigs: IAssetConfig[] = this.server.main.assetRootConfig.assets;
+            const assetConfigs: IAssetConfig[] = this.server.rootConfig.assetRootConfig.assets;
 
             for (const assetConfig of assetConfigs) {
                 const assetVariablesMap: Map<string, IOpcVariable> = new Map<string, IOpcVariable>();
@@ -214,7 +214,7 @@ export class RpiPlcOpcuaServer {
                     const uaVariable = this.createAssetVariable(opcAsset, assetNode, dataValue);
 
                     if (!uaVariable) {
-                        this.server.log.error([ModuleName, 'error'], `Error creating UAVariable: ${assetNode.browseName}`);
+                        this.server.log.error({ tags: [ModuleName] }, `Error creating UAVariable: ${assetNode.browseName}`);
                         continue;
                     }
 
@@ -236,7 +236,7 @@ export class RpiPlcOpcuaServer {
                 this.opcAssetMap.set(assetConfig.name, opcAssetInfo);
             }
 
-            const methodConfigs: IMethodConfig[] = this.server.main.assetRootConfig.methods;
+            const methodConfigs: IMethodConfig[] = this.server.rootConfig.assetRootConfig.methods;
 
             for (const methodConfig of methodConfigs) {
                 const method = this.localServerNamespace.addMethod(this.assetsRoot, {
@@ -274,13 +274,13 @@ export class RpiPlcOpcuaServer {
                         break;
 
                     default:
-                        this.server.log.warn([ModuleName, 'warning'], `Unknown method name: ${methodConfig.browseName}`);
+                        this.server.log.warn({ tags: [ModuleName] }, `Unknown method name: ${methodConfig.browseName}`);
                 }
                 /* eslint-enable @typescript-eslint/no-unsafe-argument */
             }
         }
         catch (ex) {
-            this.server.log.error([ModuleName, 'error'], `Error while processing server configuration (adding variables): ${ex.message}`);
+            this.server.log.error({ tags: [ModuleName] }, `Error while processing server configuration (adding variables): ${ex.message}`);
         }
     }
 
@@ -301,14 +301,14 @@ export class RpiPlcOpcuaServer {
             this.addressSpace.installHistoricalDataNode(uaVariable);
         }
         catch (ex) {
-            this.server.log.error([ModuleName, 'error'], `Error while adding new UAVariable: ${ex.message}`);
+            this.server.log.error({ tags: [ModuleName] }, `Error while adding new UAVariable: ${ex.message}`);
         }
 
         return uaVariable;
     }
 
     private controlIndicatorLights(inputArguments: Variant[], _context: SessionContext): CallMethodResultOptions {
-        this.server.log.info([ModuleName, 'info'], `controlIndicatorLights`);
+        this.server.log.info({ tags: [ModuleName] }, `controlIndicatorLights`);
 
         const callMethodResult = {
             statusCode: StatusCodes.Good,
@@ -332,7 +332,7 @@ export class RpiPlcOpcuaServer {
             });
         }
         catch (ex) {
-            this.server.log.error([ModuleName, 'error'], `Error in controlIndicatorLights: ${ex.message}`);
+            this.server.log.error({ tags: [ModuleName] }, `Error in controlIndicatorLights: ${ex.message}`);
 
             callMethodResult.statusCode = StatusCodes.Bad;
             callMethodResult.outputArguments[0].value = false;
@@ -343,7 +343,7 @@ export class RpiPlcOpcuaServer {
     }
 
     private setIndicatorLightMode(inputArguments: Variant[], _context: SessionContext): CallMethodResultOptions {
-        this.server.log.info([ModuleName, 'info'], `setIndicatorLightMode`);
+        this.server.log.info({ tags: [ModuleName] }, `setIndicatorLightMode`);
 
         const callMethodResult = {
             statusCode: StatusCodes.Good,
@@ -363,7 +363,7 @@ export class RpiPlcOpcuaServer {
             this.plcController.setIndicatorLightMode(inputArguments[0].value as IndicatorLightMode);
         }
         catch (ex) {
-            this.server.log.error([ModuleName, 'error'], `Error in setIndicatorLightMode: ${ex.message}`);
+            this.server.log.error({ tags: [ModuleName] }, `Error in setIndicatorLightMode: ${ex.message}`);
 
             callMethodResult.statusCode = StatusCodes.Bad;
             callMethodResult.outputArguments[0].value = false;
@@ -374,7 +374,7 @@ export class RpiPlcOpcuaServer {
     }
 
     private async controlDistanceSensor(inputArguments: Variant[], _context: SessionContext): Promise<CallMethodResultOptions> {
-        this.server.log.info([ModuleName, 'info'], `controlDistanceSensor`);
+        this.server.log.info({ tags: [ModuleName] }, `controlDistanceSensor`);
 
         const callMethodResult = {
             statusCode: StatusCodes.Good,
@@ -406,7 +406,7 @@ export class RpiPlcOpcuaServer {
             }
         }
         catch (ex) {
-            this.server.log.error([ModuleName, 'error'], `Error in controlDistanceSensor: ${ex.message}`);
+            this.server.log.error({ tags: [ModuleName] }, `Error in controlDistanceSensor: ${ex.message}`);
 
             callMethodResult.statusCode = StatusCodes.Bad;
             callMethodResult.outputArguments[0].value = false;
