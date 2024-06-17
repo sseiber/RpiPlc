@@ -1,11 +1,8 @@
-export class DeferredPromise<T> implements Promise<T> {
-    public [Symbol.toStringTag]: 'Promise';
-
-    public then: any;
-    public catch: any;
+export class DeferredPromise<T> {
+    public then: T;
+    public catch: T;
     public resolve: (value: T | PromiseLike<T>) => void;
-    public reject: (reason?: any) => void;
-    public finally: (onfinally?: (() => void) | undefined | null) => Promise<T>;
+    public reject: (value: T | PromiseLike<T>) => void;
     private promiseInternal: Promise<T>;
 
     constructor() {
@@ -15,10 +12,9 @@ export class DeferredPromise<T> implements Promise<T> {
         });
         this.then = this.promiseInternal.then.bind(this.promiseInternal);
         this.catch = this.promiseInternal.catch.bind(this.promiseInternal);
-        this.finally = this.promiseInternal.finally.bind(this.promiseInternal);
     }
 
-    public get promise(): Promise<any> {
+    public get promise(): Promise<T> {
         return this.promiseInternal;
     }
 }

@@ -1,14 +1,11 @@
-FROM arm64v8/alpine:3
+FROM --platform=$BUILDPLATFORM node:20-slim as buildStage
 
-RUN apk add --no-cache \
-    # alpine-sdk \
-    build-base \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
     python3 \
-    libgpiod \
+    # libgpiod \
     libgpiod-dev \
     openssl \
-    nodejs \
-    npm \
     && rm -rf /var/cache/apk/*
 
 ENV WORKINGDIR /app
@@ -27,6 +24,16 @@ RUN npm install -q && \
     npm prune --production && \
     rm -rf src
 
+# Default is --platform=$TARGETPLATFORM
+FROM alpine:3
+
+RUN apk add --no-cache \
+    libgpiod \
+    nodejs \
+    && rm -rf /var/cache/apk/*
+
+COPY --from=buildStage /app /app
+
 EXPOSE 9092 4334
 
-ENTRYPOINT ["node", "./dist/index"]
+ENTRYPOINT ["node", "/app/dist/index"]

@@ -34,6 +34,8 @@ const composeServer = async (options: composeOptions = {}): Promise<FastifyInsta
             ? pathResolve(process.env.RPIPLC_SERVICE_STORAGE)
             : '/rpi-plc/data';
 
+        server.log.info({ tags: [ModuleName] }, `Using storageRoot: ${storageRoot}`);
+
         const plcConfig = fse.readJsonSync(pathResolve(storageRoot, process.env.PLC_CONFIG_FILENAME ?? 'plcConfig.json'));
         const opcuaServerConfig = fse.readJSONSync(pathResolve(storageRoot, process.env.OPCUA_CONFIG_FILENAME ?? 'opcuaServerConfig.json'));
 
@@ -47,7 +49,6 @@ const composeServer = async (options: composeOptions = {}): Promise<FastifyInsta
         await server.register(sensible);
 
         // server.log.info({ tags: [ModuleName] }, `🚀 Adding shared schema`);
-        server.log.warn({ tags: [ModuleName] }, `NEED TO ADD SHARED SCHEMA`);
 
         server.log.info({ tags: [ModuleName] }, `Registering services`);
 

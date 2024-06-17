@@ -9,7 +9,6 @@ const RouteName = 'appHealthRouter';
 const appHealthRouter: FastifyPluginAsync = async (routeInstance: FastifyInstance): Promise<void> => {
     routeInstance.log.info({ tags: [RouteName] }, `Registering App and Health routes...`);
 
-    // await instance.register(async (routeInstance, _routeOptions) => {
     await new Promise<void>((resolve, reject) => {
         try {
             routeInstance.get('/', (_request, response) => {
@@ -18,7 +17,7 @@ const appHealthRouter: FastifyPluginAsync = async (routeInstance: FastifyInstanc
                 return response.status(200).send({ 200: 'RpiPLC Service' });
             });
 
-            routeInstance.get('/health-check', (_request, response) => {
+            routeInstance.get('/health', (_request, response) => {
                 routeInstance.log.info({ tags: [RouteName] }, `getHealthCheck`);
 
                 try {
@@ -39,7 +38,6 @@ const appHealthRouter: FastifyPluginAsync = async (routeInstance: FastifyInstanc
             return reject(ex as Error);
         }
     });
-    // });
 };
 
 export default fp(appHealthRouter, {

@@ -24,10 +24,10 @@ async function execDockerBuild(dockerArch, dockerImage) {
         'buildx',
         'build',
         '-f',
-        `docker/${dockerArch}.Dockerfile`,
-        '--push',
+        `docker/Dockerfile`,
         '--platform',
-        'linux/arm64',
+        dockerArch,
+        '--push',
         '-t',
         dockerImage,
         '.'
@@ -58,8 +58,8 @@ async function start() {
         const imageConfigFilePath = path.resolve(programOptions.workspaceFolder, `configs`, configFile);
         const imageConfig = fse.readJSONSync(imageConfigFilePath);
         const dockerVersion = imageConfig.versionTag || process.env.npm_package_version || programOptions.imageVersion || 'latest';
-        const dockerArch = `${imageConfig.arch}${programOptions.debug ? '-debug' : ''}` || '';
-        const dockerImage = `${imageConfig.imageName}:${dockerVersion}-${dockerArch}`;
+        const dockerArch = `${imageConfig.arch}` || 'linux/amd64';
+        const dockerImage = `${imageConfig.imageName}:${dockerVersion}`;
 
         log(`Docker image: ${dockerImage}`);
         log(`Platform: ${os.type()}`);
