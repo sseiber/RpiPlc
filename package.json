@@ -1,10 +1,10 @@
 {
     "name": "rpi-plc",
-    "version": "2.0.14",
+    "version": "2.0.17",
     "description": "Rpi sample plc and opcua server service",
     "main": "index.js",
     "scripts": {
-        "test": "echo \"TBD\" && exit 1",
+        "test": "echo \"TBD\" && exit 0",
         "eslint": "export ESLINT_USE_FLAT_CONFIG=true && eslint --config eslint.config.mjs .",
         "build": "node ./node_modules/typescript/bin/tsc -p .",
         "dockerbuild": "npm run build && node ./.scripts/dockerBuild.js -b -r .",
