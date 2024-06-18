@@ -163,7 +163,7 @@ export class TFLunaResponseParser extends Transform {
     }
 
     private parseSetBaudRateResponse(commandId: number, data: Buffer): ITFLunaBaudResponse {
-        const baudRate = ((data.readUInt8(6) << 24) + (data.readUInt8(5) << 16)) + ((data.readUInt8(4) << 8) + (data.readUInt8(3)));
+        const baudRate = data.readInt32LE(3);
 
         this.tfLog([ModuleName, 'debug'], `baudRate: ${baudRate}`);
 
@@ -174,7 +174,7 @@ export class TFLunaResponseParser extends Transform {
     }
 
     private parseSetSampleRateResponse(commandId: number, data: Buffer): ITFLunaSampleRateResponse {
-        const sampleRate = (data.readUInt8(4) << 8) + data.readUInt8(3);
+        const sampleRate = data.readInt16LE(3);
 
         this.tfLog([ModuleName, 'debug'], `sampleRate: ${sampleRate}`);
 

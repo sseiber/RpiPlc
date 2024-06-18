@@ -46,6 +46,15 @@ class PlcDataAccessor {
     public set?: (value: any) => void;
 }
 
+enum DeferredPromiseReason {
+    RestoreTFLunaSettings = 'RestoreTFLunaSettings',
+    SaveTFLunaSettings = 'SaveTFLunaSettings',
+    SoftReset = 'SoftReset',
+    SetBaudRate = 'SetBaudRate',
+    SetSampleRate = 'SetSampleRate',
+    GetLunaVersion = 'GetLunaVersion'
+}
+
 export class PlcController {
     private server: FastifyInstance;
     private activeObserveTargets: ActiveObserveTargets;
@@ -61,12 +70,7 @@ export class PlcController {
     private serialPort: SerialPort;
     private tfLunaResponseParser: TFLunaResponseParser;
     private tfLunaStatus: ITFLunaStatus;
-    private deferredPromiseRestoreTFLunaSettings: DeferredPromise<void> = new DeferredPromise<void>();
-    private deferredPromiseSaveTFLunaSettings: DeferredPromise<void> = new DeferredPromise<void>();
-    private deferredPromiseSoftReset: DeferredPromise<void> = new DeferredPromise<void>();
-    private deferredPromiseSetBaudRate: DeferredPromise<void> = new DeferredPromise<void>();
-    private deferredPromiseSetSampleRate: DeferredPromise<void> = new DeferredPromise<void>();
-    private deferredPromiseGetLunaVersion: DeferredPromise<void> = new DeferredPromise<void>();
+    private mapDeferredPromises = new Map<DeferredPromiseReason, DeferredPromise<void>>();
     // private tfLunaMeasurementTimer: NodeJS.Timeout;
     private deviceMap: Map<string, PlcDataAccessor> = new Map<string, PlcDataAccessor>();
 
@@ -192,6 +196,8 @@ export class PlcController {
                         });
 
                         if (plcDeviceConfigValue.autoStart) {
+                            this.server.log.info({ tags: [ModuleName] }, `Auto-start feature is set - starting TFLuna measurement...`);
+
                             await this.startTFLunaMeasurement();
                         }
 
@@ -258,7 +264,7 @@ export class PlcController {
                     break;
 
                 case TfMeasurementAction.Single:
-                    this.getTFLunaMeasurement();
+                    await this.getTFLunaMeasurement();
                     break;
 
                 default:
@@ -397,7 +403,7 @@ export class PlcController {
     }
 
     private tfLunaResponseParserHandler(data: ITFLunaResponse): void {
-        this.server.log.info({ tags: [ModuleName] }, `[### DEBUG]: tfLunaResponseParserHandler - data: ${JSON.stringify(data, null, 4)}`);
+        // this.server.log.info({ tags: [ModuleName] }, `[### DEBUG]: tfLunaResponseParserHandler - data: ${JSON.stringify(data, null, 4)}`);
 
         const commandId = data?.commandId;
         if (commandId) {
@@ -409,7 +415,7 @@ export class PlcController {
 
                     responseMessage = `Restore default settings: ${this.tfLunaStatus.restoreDefaultSettingsStatus}`;
 
-                    this.deferredPromiseRestoreTFLunaSettings.resolve();
+                    this.mapDeferredPromises.get(DeferredPromiseReason.RestoreTFLunaSettings)?.resolve();
 
                     break;
 
@@ -418,7 +424,7 @@ export class PlcController {
 
                     responseMessage = `Save current settings: ${this.tfLunaStatus.saveCurrentSettingsStatus}`;
 
-                    this.deferredPromiseSaveTFLunaSettings.resolve();
+                    this.mapDeferredPromises.get(DeferredPromiseReason.SaveTFLunaSettings)?.resolve();
 
                     break;
 
@@ -427,7 +433,7 @@ export class PlcController {
 
                     responseMessage = `Soft reset: ${this.tfLunaStatus.softResetStatus}`;
 
-                    this.deferredPromiseSoftReset.resolve();
+                    this.mapDeferredPromises.get(DeferredPromiseReason.SoftReset)?.resolve();
 
                     break;
 
@@ -436,7 +442,7 @@ export class PlcController {
 
                     responseMessage = `Current baudRate: ${this.tfLunaStatus.baudRate}`;
 
-                    this.deferredPromiseSetBaudRate.resolve();
+                    this.mapDeferredPromises.get(DeferredPromiseReason.SetBaudRate)?.resolve();
 
                     break;
 
@@ -445,7 +451,7 @@ export class PlcController {
 
                     responseMessage = `Set sample rate: ${this.tfLunaStatus.sampleRate}`;
 
-                    this.deferredPromiseSetSampleRate.resolve();
+                    this.mapDeferredPromises.get(DeferredPromiseReason.SetSampleRate)?.resolve();
 
                     break;
 
@@ -454,7 +460,7 @@ export class PlcController {
 
                     responseMessage = `Get current version: ${this.tfLunaStatus.version}`;
 
-                    this.deferredPromiseGetLunaVersion.resolve();
+                    this.mapDeferredPromises.get(DeferredPromiseReason.GetLunaVersion)?.resolve();
 
                     break;
 
@@ -473,7 +479,7 @@ export class PlcController {
             }
 
             if (responseMessage) {
-                this.server.log.info({ tags: [ModuleName] }, `[TFLunaResponse]: ${responseMessage}`);
+                this.server.log.info({ tags: [ModuleName, 'TFLunaResponse'] }, `${responseMessage}`);
             }
         }
         else {
@@ -514,100 +520,145 @@ export class PlcController {
     }
 
     // private async restoreTFLunaSettings(): Promise<void> {
-    //     this.server.log.info({ tags: [ModuleName] }, `[TFLunaRequest]: Restore default settings`);
+    //     this.server.log.info({ tags: [ModuleName, 'TFLunaRequest'] }, Restore default settings`);
 
-    //     this.deferredPromiseRestoreTFLunaSettings = new DeferredPromise<void>();
+    //     const deferredPromise = new DeferredPromise<void>();
+    //     this.mapDeferredPromises.set(DeferredPromiseReason.RestoreTFLunaSettings, deferredPromise);
 
-    //     this.writeTFLunaCommand(Buffer.from(TFLunaRestoreDefaultSettingsPrefix.concat([0x00])));
+    //     await this.writeTFLunaCommand(Buffer.from(TFLunaRestoreDefaultSettingsPrefix.concat([0x00])));
 
-    //     await this.deferredPromiseRestoreTFLunaSettings.promise;
+    //     await deferredPromise.promise;
     //     await sleep(2000);
     // }
 
     private async saveTFLunaSettings(): Promise<void> {
-        this.server.log.info({ tags: [ModuleName] }, `[TFLunaRequest]: Save current settings`);
+        this.server.log.info({ tags: [ModuleName, 'TFLunaRequest'] }, `Save current settings`);
 
-        this.deferredPromiseSaveTFLunaSettings = new DeferredPromise<void>();
+        try {
+            const deferredPromise = new DeferredPromise<void>();
+            this.mapDeferredPromises.set(DeferredPromiseReason.SaveTFLunaSettings, deferredPromise);
 
-        this.writeTFLunaCommand(Buffer.from(TFLunaSaveCurrentSettingsPrefix.concat([0x00])));
+            await this.writeTFLunaCommand(Buffer.from(TFLunaSaveCurrentSettingsPrefix.concat([0x00])));
 
-        await this.deferredPromiseSaveTFLunaSettings.promise;
-        // await sleep(2000);
-    }
-
-    private async resetTFLuna(): Promise<void> {
-        this.server.log.info({ tags: [ModuleName] }, `[TFLunaRequest]: Soft reset`);
-
-        this.deferredPromiseSoftReset = new DeferredPromise<void>();
-
-        this.writeTFLunaCommand(Buffer.from(TFLunaSoftResetPrefix.concat([0x00])));
-
-        await this.deferredPromiseSoftReset.promise;
-        // await sleep(5000);
-    }
-
-    private async setTFLunaBaudRate(baudRate = 115200): Promise<void> {
-        this.server.log.info({ tags: [ModuleName] }, `[TFLunaRequest]: Set baud rate request with value: ${baudRate}`);
-
-        this.server.log.info({ tags: [ModuleName] }, `[### DEBUG]: instantiate new deferredPromiseSetBaudRate`);
-        this.deferredPromiseSetBaudRate = new DeferredPromise<void>();
-
-        const data1 = (baudRate & 0xFF);
-        const data2 = (baudRate & 0xFF00) >> 8;
-        const data3 = (baudRate & 0x00FF0000) >> 16;
-        const data4 = (baudRate & 0xFF000000) >> 24;
-
-        this.server.log.info({ tags: [ModuleName] }, `[### DEBUG]: writing command`);
-        this.writeTFLunaCommand(Buffer.from(TFLunaSetBaudRatePrefix.concat([data1, data2, data3, data4, 0x00])));
-
-        this.server.log.info({ tags: [ModuleName] }, `[### DEBUG]: awaiting deferredPromiseSetBaudRate.promise`);
-        await this.deferredPromiseSetBaudRate.promise;
-        // await sleep(2000);
-    }
-
-    private async setTFLunaSampleRate(sampleRate: number): Promise<void> {
-        this.server.log.info({ tags: [ModuleName] }, `[TFLunaRequest]: Set sample rate request with value: ${sampleRate}`);
-
-        this.deferredPromiseSetSampleRate = new DeferredPromise<void>();
-
-        this.writeTFLunaCommand(Buffer.from(TFLunaSetSampleRatePrefix.concat([sampleRate, 0x00, 0x00])));
-
-        await this.deferredPromiseSetSampleRate.promise;
-        // await sleep(2000);
-    }
-
-    private async getTFLunaVersion(): Promise<void> {
-        this.server.log.info({ tags: [ModuleName] }, `[TFLunaRequest]: Get version request`);
-
-        this.deferredPromiseGetLunaVersion = new DeferredPromise<void>();
-
-        this.writeTFLunaCommand(Buffer.from(TFLunaGetVersionPrefix.concat([0x00])));
-
-        await this.deferredPromiseGetLunaVersion.promise;
-        // await sleep(2000);
-    }
-
-    private getTFLunaMeasurement(): void {
-        if (this.tfLunaStatus.sampleRate === 0) {
-            this.writeTFLunaCommand(Buffer.from(TFLunaMeasurementPrefix.concat([0x00])));
+            await deferredPromise.promise;
+        }
+        catch (ex) {
+            this.server.log.error({ tags: [ModuleName] }, `Error during saveTFLunaSettings: ${ex.message}`);
+        }
+        finally {
+            this.mapDeferredPromises.delete(DeferredPromiseReason.SaveTFLunaSettings);
         }
     }
 
-    private writeTFLunaCommand(writeData: Buffer): void {
-        try {
-            this.server.log.info({ tags: [ModuleName] }, `[### DEBUG]: starting write`);
-            this.serialPort.write(writeData, (writeError: Error) => {
-                if (writeError) {
-                    this.server.log.error({ tags: [ModuleName] }, `Serial port write error: ${writeError.message}`);
-                }
+    private async resetTFLuna(): Promise<void> {
+        this.server.log.info({ tags: [ModuleName, 'TFLunaRequest'] }, `Soft reset`);
 
-                this.server.log.info({ tags: [ModuleName] }, `[### DEBUG]: in write callback, now starting drain check`);
-                this.serialPort.drain((drainError) => {
-                    if (drainError) {
-                        this.server.log.error({ tags: [ModuleName] }, `Serial port drain error: ${drainError.message}`);
+        try {
+            const deferredPromise = new DeferredPromise<void>();
+            this.mapDeferredPromises.set(DeferredPromiseReason.SoftReset, deferredPromise);
+
+            await this.writeTFLunaCommand(Buffer.from(TFLunaSoftResetPrefix.concat([0x00])));
+
+            await deferredPromise.promise;
+        }
+        catch (ex) {
+            this.server.log.error({ tags: [ModuleName] }, `Error during resetTFLuna: ${ex.message}`);
+        }
+        finally {
+            this.mapDeferredPromises.delete(DeferredPromiseReason.SoftReset);
+
+            this.server.log.info({ tags: [ModuleName] }, `Waiting for 5s to allow reset to complete...`);
+            await sleep(5000);
+        }
+    }
+
+    private async setTFLunaBaudRate(baudRate = 115200): Promise<void> {
+        this.server.log.info({ tags: [ModuleName, 'TFLunaRequest'] }, `Set baud rate request with value: ${baudRate}`);
+
+        try {
+            const deferredPromise = new DeferredPromise<void>();
+            this.mapDeferredPromises.set(DeferredPromiseReason.SetBaudRate, deferredPromise);
+
+            const data1 = (baudRate & 0xFF);
+            const data2 = (baudRate & 0xFF00) >> 8;
+            const data3 = (baudRate & 0x00FF0000) >> 16;
+            const data4 = (baudRate & 0xFF000000) >> 24;
+
+            await this.writeTFLunaCommand(Buffer.from(TFLunaSetBaudRatePrefix.concat([data1, data2, data3, data4, 0x00])));
+
+            await deferredPromise.promise;
+        }
+        catch (ex) {
+            this.server.log.error({ tags: [ModuleName] }, `Error during setTFLunaBaudRate: ${ex.message}`);
+        }
+        finally {
+            this.mapDeferredPromises.delete(DeferredPromiseReason.SetBaudRate);
+        }
+    }
+
+    private async setTFLunaSampleRate(sampleRate: number): Promise<void> {
+        this.server.log.info({ tags: [ModuleName, 'TFLunaRequest'] }, `Set sample rate request with value: ${sampleRate}`);
+
+        try {
+            const deferredPromise = new DeferredPromise<void>();
+            this.mapDeferredPromises.set(DeferredPromiseReason.SetSampleRate, deferredPromise);
+
+            await this.writeTFLunaCommand(Buffer.from(TFLunaSetSampleRatePrefix.concat([sampleRate, 0x00, 0x00])));
+
+            await deferredPromise.promise;
+        }
+        catch (ex) {
+            this.server.log.error({ tags: [ModuleName] }, `Error during setTFLunaSampleRate: ${ex.message}`);
+        }
+        finally {
+            this.mapDeferredPromises.delete(DeferredPromiseReason.SetSampleRate);
+        }
+    }
+
+    private async getTFLunaVersion(): Promise<void> {
+        this.server.log.info({ tags: [ModuleName, 'TFLunaRequest'] }, `Get version request`);
+
+        try {
+            const deferredPromise = new DeferredPromise<void>();
+            this.mapDeferredPromises.set(DeferredPromiseReason.GetLunaVersion, deferredPromise);
+
+            await this.writeTFLunaCommand(Buffer.from(TFLunaGetVersionPrefix.concat([0x00])));
+
+            await deferredPromise.promise;
+        }
+        catch (ex) {
+            this.server.log.error({ tags: [ModuleName] }, `Error during getTFLunaVersion: ${ex.message}`);
+        }
+        finally {
+            this.mapDeferredPromises.delete(DeferredPromiseReason.GetLunaVersion);
+        }
+    }
+
+    private async getTFLunaMeasurement(): Promise<void> {
+        if (this.tfLunaStatus.sampleRate === 0) {
+            await this.writeTFLunaCommand(Buffer.from(TFLunaMeasurementPrefix.concat([0x00])));
+        }
+    }
+
+    private async writeTFLunaCommand(writeData: Buffer): Promise<void> {
+        try {
+            await new Promise<void>((resolve, reject) => {
+                this.serialPort.write(writeData, (writeError: Error) => {
+                    if (writeError) {
+                        this.server.log.error({ tags: [ModuleName] }, `Serial port write error: ${writeError.message}`);
+
+                        return reject(writeError);
                     }
 
-                    this.server.log.info({ tags: [ModuleName] }, `[### DEBUG]: completed drain check`);
+                    this.serialPort.drain((drainError) => {
+                        if (drainError) {
+                            this.server.log.error({ tags: [ModuleName] }, `Serial port drain error: ${drainError.message}`);
+
+                            return reject(drainError);
+                        }
+
+                        return resolve();
+                    });
                 });
             });
         }
