@@ -104,9 +104,11 @@ export class TFLunaResponseParser extends Transform {
                 header = data.readUInt16BE(0);
                 length = 9;
                 commandId = TFLunaMeasurementCommand;
-                checksum = data.readUInt8(data.length - 1);
+                checksum = data.readUInt8(8);
 
-                tfResponse = this.parseTriggerResponse(commandId, data);
+                if (data.length === 9) {
+                    tfResponse = this.parseTriggerResponse(commandId, data);
+                }
             }
 
             this.push(tfResponse);
@@ -198,9 +200,9 @@ export class TFLunaResponseParser extends Transform {
 
     private parseTriggerResponse(commandId: number, data: Buffer): ITFLunaMeasureResponse {
         const seq = this.measurementSequence++;
-        const amp = data.readUInt16LE(4);
-        const distCm = (amp <= 100 || amp === 65535) ? 0 : data.readUInt16LE(2);
-        const tempCt = data.readUInt16LE(6);
+        const amp = data.readInt16LE(4);
+        const distCm = (amp <= 100 || amp === 65535) ? 0 : data.readInt16LE(2);
+        const tempCt = data.readInt16LE(6);
         const tempC = tempCt ? (tempCt / 8) - 256 : 0;
 
         this.tfLog([ModuleName, 'debug'], `seq: ${seq}, trig: distCm ${distCm}, amp ${amp}, tempC ${tempC}`);
