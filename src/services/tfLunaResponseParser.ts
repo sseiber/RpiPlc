@@ -104,9 +104,9 @@ export class TFLunaResponseParser extends Transform {
                 header = data.readUInt16BE(0);
                 length = 9;
                 commandId = TFLunaMeasurementCommand;
-                checksum = data.readUInt8(8);
+                // checksum = data.readUInt8(8);
 
-                if (data.length === 9) {
+                if (data && data.length > 0) {
                     tfResponse = this.parseTriggerResponse(commandId, data);
                 }
             }
