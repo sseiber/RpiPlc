@@ -53,7 +53,8 @@ async function start() {
 
     try {
         const server: FastifyInstance<Server, IncomingMessage, ServerResponse> = await composeServer({
-            logger: loggerConfig
+            logger: loggerConfig,
+            pluginTimeout: 60000
         });
 
         server.log.info({ tags: [ModuleName] }, `🚀 Server instance started`);

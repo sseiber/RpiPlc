@@ -155,7 +155,7 @@ declare module 'fastify' {
 }
 
 export default fp(rpiPlcServicePlugin, {
-    fastify: '4.x',
+    fastify: '5.x',
     name: ServiceName,
     dependencies: [
         ConfigPluginName

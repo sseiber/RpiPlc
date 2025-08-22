@@ -99,7 +99,7 @@ const nliRouter: FastifyPluginAsync<IRpiPlcRouteOptions> = async (fastifyInstanc
 };
 
 export default fp(nliRouter, {
-    fastify: '4.x',
+    fastify: '5.x',
     name: RouteName,
     dependencies: [
         RpiPlcServiceName
