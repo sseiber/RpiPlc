@@ -1,0 +1,43 @@
+{
+  "$id": "ITFLunaStatus",
+  "$ref": "#/definitions/ITFLunaStatus",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "ITFLunaStatus": {
+      "additionalProperties": false,
+      "properties": {
+        "baudRate": {
+          "type": "number"
+        },
+        "measurement": {
+          "type": "number"
+        },
+        "restoreDefaultSettingsStatus": {
+          "type": "number"
+        },
+        "sampleRate": {
+          "type": "number"
+        },
+        "saveCurrentSettingsStatus": {
+          "type": "number"
+        },
+        "softResetStatus": {
+          "type": "number"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "restoreDefaultSettingsStatus",
+        "saveCurrentSettingsStatus",
+        "softResetStatus",
+        "baudRate",
+        "sampleRate",
+        "version",
+        "measurement"
+      ],
+      "type": "object"
+    }
+  }
+}

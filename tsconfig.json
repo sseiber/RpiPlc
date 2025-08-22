@@ -2,29 +2,33 @@
     "compilerOptions": {
         "rootDir": "./src",
         "outDir": "./dist",
-        "target": "ES2022",
-        "jsx": "react",
-        "module": "CommonJS",
-        "moduleResolution": "node",
-        "resolveJsonModule": true,
+        "target": "es2024",
+        "lib": [
+            "ES2024"
+        ],
+        "module": "NodeNext",
+        "skipLibCheck": true,
+        "moduleResolution": "nodenext",
         "declaration": true,
         "declarationMap": true,
         "sourceMap": true,
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,
-        // "strict": true,
+        "strict": true,
         "noImplicitAny": false,
         "strictNullChecks": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
-        "skipLibCheck": true,
-        "typeRoots": [
-            "node_modules/@types"
-        ]
+        "noFallthroughCasesInSwitch": true,
+        "useUnknownInCatchVariables": true
     },
     "compileOnSave": true,
     "include": [
-        "eslint.config.mjs",
         "src/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "storage"
     ]
 }

@@ -1,6 +1,7 @@
 import jseslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import stylisticPlugin from '@stylistic/eslint-plugin';
+// import reactPlugin from 'eslint-plugin-react';
 import globals from 'globals';
 
 const stylisticRules = {
@@ -11,7 +12,7 @@ const stylisticRules = {
     '@stylistic/member-delimiter-style': 'error',
     '@stylistic/new-parens': 'error',
     '@stylistic/no-multiple-empty-lines': 'error',
-    '@stylistic/quotes': ['error', 'single', { allowTemplateLiterals: true }],
+    '@stylistic/quotes': ['error', 'single', { allowTemplateLiterals: 'always' }],
     '@stylistic/quote-props': ['error', 'as-needed', { 'unnecessary': false }],
     '@stylistic/semi': ['error', 'always'],
     '@stylistic/spaced-comment': ['error', 'always', { exceptions: ['-+'] }],
@@ -41,6 +42,7 @@ const typescriptRules = {
     'no-unneeded-ternary': 'error',
     '@typescript-eslint/no-unsafe-assignment': 'off',
     '@typescript-eslint/no-unsafe-call': 'off',
+    '@typescript-eslint/no-unsafe-enum-comparison': 'off',
     '@typescript-eslint/no-unsafe-member-access': 'off',
     'no-unused-vars': 'off',
     '@typescript-eslint/no-unused-vars': ['error', { args: 'all', argsIgnorePattern: '^_', caughtErrors: 'all', caughtErrorsIgnorePattern: '^_' }],
@@ -61,14 +63,21 @@ const javascriptRules = {
 export default tseslint.config(
     {
         ignores: [
-            '.scripts',
-            'dist'
+            'resources',
+            '**/dist',
+            'storage',
+            'thunder-tests'
         ]
     },
     {
         files: [
             'src/**/*.ts'
         ],
+        settings: {
+            react: {
+                version: "detect",
+            },
+        },
         extends: [
             jseslint.configs.recommended,
             ...tseslint.configs.recommendedTypeChecked,
@@ -83,21 +92,28 @@ export default tseslint.config(
             },
             parser: tseslint.parser,
             parserOptions: {
-                project: 'tsconfig.json'
+                projectService: true,
+                tsconfigRootDir: import.meta.dirname,
+                ecmaFeatures: {
+                    jsx: true
+                }
             }
         },
         plugins: {
             '@typescript-eslint': tseslint.plugin,
-            '@stylistic': stylisticPlugin
+            '@stylistic': stylisticPlugin,
+            // react: reactPlugin
         },
         rules: {
             ...typescriptRules,
-            ...stylisticRules
+            ...stylisticRules,
+            // ...reactPlugin.configs.recommended.rules,
+            // ...reactPlugin.configs.flat['jsx-runtime'].rules
         }
     },
     {
         files: [
-            'eslint.config.mjs'
+            'eslint.config.js'
         ],
         extends: [
             jseslint.configs.recommended,

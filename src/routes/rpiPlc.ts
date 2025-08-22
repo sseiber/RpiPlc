@@ -3,42 +3,37 @@ import {
     FastifyPluginAsync
 } from 'fastify';
 import fp from 'fastify-plugin';
-import IObserveRequestSchema from '../models/IObserveRequestSchema.json';
-import IControlRequestSchema from '../models/IControlRequestSchema.json';
-import IRpiPlcResponseSchema from '../models/IRpiPlcResponseSchema.json';
-import IServiceErrorMessageSchema from '../models/IServiceErrorMessageSchema.json';
 import {
+    IServiceReply,
+    IServiceResponseSchema,
+    IServiceErrorMessageSchema,
     IObserveRequest,
+    IObserveRequestSchema,
     IControlRequest,
-    IRpiPlcResponse,
-    IServiceErrorMessage
-} from '../models/rpiPlcTypes';
+    IControlRequestSchema
+} from '../models/index.js';
+import { exMessage } from '../utils/index.js';
+import { ServiceName as RpiPlcServiceName } from '../services/rpiPlc.js';
 
 const RouteName = 'rpiPlcRouter';
-
-interface IRpiPlcReply {
-    201: IRpiPlcResponse;
-    '4xx': IServiceErrorMessage;
-    '5xx': IServiceErrorMessage;
-}
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface IRpiPlcRouteOptions {
 }
 
 const nliRouter: FastifyPluginAsync<IRpiPlcRouteOptions> = async (fastifyInstance: FastifyInstance, options: IRpiPlcRouteOptions): Promise<void> => {
-    fastifyInstance.log.info({ tags: [RouteName] }, `Registering RpiPlc routes...`);
+    fastifyInstance.log.info({ tags: [RouteName] }, `registering...`);
 
     await fastifyInstance.register(async (routeInstance, _routeOptions) => {
         await new Promise<void>((resolve, reject) => {
             try {
-                routeInstance.route<{ Body: IObserveRequest; Reply: IRpiPlcReply }>({
+                routeInstance.route<{ Body: IObserveRequest; Reply: IServiceReply }>({
                     method: 'POST',
                     url: '/observe',
                     schema: {
                         body: IObserveRequestSchema,
                         response: {
-                            201: IRpiPlcResponseSchema,
+                            201: IServiceResponseSchema,
                             '4xx': IServiceErrorMessageSchema,
                             '5xx': IServiceErrorMessageSchema
                         }
@@ -57,18 +52,18 @@ const nliRouter: FastifyPluginAsync<IRpiPlcRouteOptions> = async (fastifyInstanc
                             return response.status(201).send(observeResponse);
                         }
                         catch (ex) {
-                            throw routeInstance.httpErrors.badRequest(ex.message as string);
+                            throw routeInstance.httpErrors.badRequest(exMessage(ex));
                         }
                     }
                 });
 
-                routeInstance.route<{ Body: IControlRequest; Reply: IRpiPlcReply }>({
+                routeInstance.route<{ Body: IControlRequest; Reply: IServiceReply }>({
                     method: 'POST',
                     url: '/control',
                     schema: {
                         body: IControlRequestSchema,
                         response: {
-                            201: IRpiPlcResponseSchema,
+                            201: IServiceResponseSchema,
                             '4xx': IServiceErrorMessageSchema,
                             '5xx': IServiceErrorMessageSchema
                         }
@@ -87,7 +82,7 @@ const nliRouter: FastifyPluginAsync<IRpiPlcRouteOptions> = async (fastifyInstanc
                             return response.status(201).send(controlResponse);
                         }
                         catch (ex) {
-                            throw routeInstance.httpErrors.badRequest(ex.message as string);
+                            throw routeInstance.httpErrors.badRequest(exMessage(ex));
                         }
                     }
                 });
@@ -95,7 +90,7 @@ const nliRouter: FastifyPluginAsync<IRpiPlcRouteOptions> = async (fastifyInstanc
                 return resolve();
             }
             catch (ex) {
-                fastifyInstance.log.error({ tags: [RouteName] }, `Registering RpiPlc routes failed: ${ex.message}`);
+                fastifyInstance.log.error({ tags: [RouteName] }, `Registering RpiPlc routes failed: ${exMessage(ex)}`);
 
                 return reject(ex as Error);
             }
@@ -107,7 +102,6 @@ export default fp(nliRouter, {
     fastify: '4.x',
     name: RouteName,
     dependencies: [
-        'config',
-        'rpiPlcService'
+        RpiPlcServiceName
     ]
 });

@@ -1,0 +1,23 @@
+{
+  "$id": "ITFLunaSampleRateResponse",
+  "$ref": "#/definitions/ITFLunaSampleRateResponse",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "ITFLunaSampleRateResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "commandId": {
+          "type": "number"
+        },
+        "sampleRate": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "commandId",
+        "sampleRate"
+      ],
+      "type": "object"
+    }
+  }
+}

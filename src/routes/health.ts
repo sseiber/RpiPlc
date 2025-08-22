@@ -1,49 +1,44 @@
 import {
     FastifyInstance,
-    FastifyPluginAsync
+    FastifyPluginCallback,
+    HookHandlerDoneFunction
 } from 'fastify';
 import fp from 'fastify-plugin';
+import { exMessage } from '../utils/index.js';
 
 const RouteName = 'appHealthRouter';
 
-const appHealthRouter: FastifyPluginAsync = async (routeInstance: FastifyInstance): Promise<void> => {
-    routeInstance.log.info({ tags: [RouteName] }, `Registering App and Health routes...`);
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface IAppHealthRouterPluginOptions { }
 
-    await new Promise<void>((resolve, reject) => {
-        try {
-            routeInstance.get('/', (_request, response) => {
-                routeInstance.log.info({ tags: [RouteName] }, `getRoot`);
+const appHealthRouterPlugin: FastifyPluginCallback<IAppHealthRouterPluginOptions> = (serverRoute: FastifyInstance, _options: IAppHealthRouterPluginOptions, done: HookHandlerDoneFunction): void => {
+    serverRoute.log.info({ tags: [RouteName] }, `registering...`);
 
-                return response.status(200).send({ 200: 'RpiPLC Service' });
-            });
+    try {
+        serverRoute.get('/health-check', async (_request, response) => {
+            serverRoute.log.info({ tags: [RouteName] }, `getHealthCheck`);
 
-            routeInstance.get('/health', (_request, response) => {
-                routeInstance.log.info({ tags: [RouteName] }, `getHealthCheck`);
+            try {
+                // await utils.healthCheck();
 
-                try {
-                    // await utils.healthCheck();
+                return response.status(200).send(`Healthy`);
+            }
+            catch (ex) {
+                return response.status(500).send(`Unhealthy: ${exMessage(ex)}`);
+            }
+        });
+    }
+    catch (ex) {
+        serverRoute.log.error({ tags: [RouteName] }, `registering routes failed: ${exMessage(ex)}`);
 
-                    return response.status(200).send(`healthy`);
-                }
-                catch (ex) {
-                    return response.status(500).send(`Unhealthy: ${ex.message}`);
-                }
-            });
+        return done(ex as Error);
+    }
 
-            return resolve();
-        }
-        catch (ex) {
-            routeInstance.log.error({ tags: [RouteName] }, `Registering health routes failed: ${ex.message}`);
-
-            return reject(ex as Error);
-        }
-    });
+    return done();
 };
 
-export default fp(appHealthRouter, {
-    fastify: '4.x',
+export default fp(appHealthRouterPlugin, {
+    fastify: '5.x',
     name: RouteName,
-    dependencies: [
-        'config'
-    ]
+    dependencies: []
 });

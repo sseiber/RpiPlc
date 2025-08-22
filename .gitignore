@@ -138,15 +138,6 @@ dist
 dist-*
 test-dist
 test-dist*
-test-browser
-typings
-typedoc
-types
-es
-sdk/cosmosdb/cosmos/lib
-*.test.js
-*.test.js.map
-*lintReport.html
 
 # autorest generated files
 swagger/*.json
@@ -154,8 +145,12 @@ swagger/*.json
 # autorest artifacts
 code-model-*
 
-# LoopBox
+# Loopbox
 server_dist
 client_dist
+build
 storage
-configs/**
+configs
+**/tsconfig.tsbuildinfo
+notes.md
+notes.txt

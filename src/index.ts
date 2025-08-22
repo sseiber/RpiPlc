@@ -1,12 +1,12 @@
+/* eslint-disable no-console */
 import { FastifyInstance } from 'fastify';
 import { Server, IncomingMessage, ServerResponse } from 'http';
-import composeServer from './composeServer';
-import { forget } from './utils';
+import composeServer from './composeServer.js';
+import { exMessage } from './utils/index.js';
 
-const ModuleName = 'main';
+const ModuleName = 'Main';
 
 process.on('unhandledRejection', (err) => {
-    // eslint-disable-next-line no-console
     console.error(err);
     process.exit(1);
 });
@@ -18,13 +18,13 @@ async function start() {
             redact: ['req.headers.authorization'],
             level: 'info',
             serializers: {
-                req(req: any) {
+                req(req) {
                     return {
                         method: req.method,
                         url: req.url,
                         protocol: req.protocol,
                         headers: {
-                            'host': req.headers.host,
+                            host: req.headers.host,
                             'user-agent': req.headers['user-agent']
                         }
                     };
@@ -36,7 +36,7 @@ async function start() {
                 //     };
                 // },
                 tags: (tags: string[]) => {
-                    return (tags && Array.isArray(tags)) ? `[${tags.join(',')}]` : '[]';
+                    return Array.isArray(tags) ? `[${tags.join(',')}]` : '[]';
                 }
             },
             transport: {
@@ -58,7 +58,10 @@ async function start() {
 
         server.log.info({ tags: [ModuleName] }, `🚀 Server instance started`);
 
-        const PORT = (server.config.PORT ?? process.env.PORT ?? process.env.port ?? process.env.PORT0 ?? process.env.port0) ?? '9092';
+        const PORT = (server.config.env.PORT ?? process.env.PORT ?? process.env.port);
+        if (!PORT) {
+            throw new Error('PORT is not defined');
+        }
 
         await server.listen({
             host: '0.0.0.0',
@@ -67,29 +70,24 @@ async function start() {
 
         for (const signal of ['SIGINT', 'SIGTERM']) {
             process.on(signal, () => {
-                void (async () => {
-                    server.log.info({ tags: [ModuleName] }, `Closing server instance with ${signal}`);
-
-                    await server.close();
-                })()
-                    .catch((ex) => {
-                        // eslint-disable-next-line no-console
-                        console.error(`Error ${ModuleName}: ${ex.message}`);
-                    })
-                    .finally(() => {
-                        process.exit(0);
-                    });
+                console.log(`Closing server instance with ${signal}`);
+                server.close().then((error) => {
+                    process.exit(error ? 1 : 0);
+                }).catch((ex) => {
+                    console.error(`Error closing server instance: ${exMessage(ex)}`);
+                    process.exit(1);
+                });
             });
         }
     }
     catch (ex) {
-        /* eslint-disable no-console */
-        console.error(`Error ${ModuleName}: ${ex.message}`);
+        console.error(`Error ${ModuleName}: ${exMessage(ex)}`);
         console.info(`Error ${ModuleName}: ☮︎ Stopping server`);
-        /* eslint-enable no-console */
 
         process.exit(1);
     }
 }
 
-forget(start);
+void (async () => {
+    await start();
+})().catch();

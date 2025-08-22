@@ -1,21 +1,21 @@
 {
-  "$ref": "#/definitions/IRpiPlcResponse",
+  "$id": "ActiveObserveTargets",
+  "$ref": "#/definitions/ActiveObserveTargets",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "definitions": {
-    "IRpiPlcResponse": {
+    "ActiveObserveTargets": {
       "additionalProperties": false,
       "properties": {
-        "data": {},
-        "message": {
-          "type": "string"
+        "measurements": {
+          "type": "boolean"
         },
-        "succeeded": {
+        "parserCommandResponse": {
           "type": "boolean"
         }
       },
       "required": [
-        "succeeded",
-        "message"
+        "measurements",
+        "parserCommandResponse"
       ],
       "type": "object"
     }

@@ -1,0 +1,23 @@
+{
+  "$id": "ITFLunaSaveCurrentSettingsResponse",
+  "$ref": "#/definitions/ITFLunaSaveCurrentSettingsResponse",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "ITFLunaSaveCurrentSettingsResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "commandId": {
+          "type": "number"
+        },
+        "status": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "commandId",
+        "status"
+      ],
+      "type": "object"
+    }
+  }
+}

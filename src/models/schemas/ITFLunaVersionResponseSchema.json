@@ -1,0 +1,23 @@
+{
+  "$id": "ITFLunaVersionResponse",
+  "$ref": "#/definitions/ITFLunaVersionResponse",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "ITFLunaVersionResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "commandId": {
+          "type": "number"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "commandId",
+        "version"
+      ],
+      "type": "object"
+    }
+  }
+}

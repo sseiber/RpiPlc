@@ -1,9 +1,14 @@
-import { sleep } from './sleep';
-import { forget } from './forget';
-import { DeferredPromise } from './defer';
+import { exMessage } from './exMessage.js';
+import { forget } from './forget.js';
+import { getFilename, getDirname } from './dirname.js';
+import { pjson } from './pjson.js';
+import { sleep } from './sleep.js';
 
 export {
-    sleep,
+    exMessage,
     forget,
-    DeferredPromise
+    getFilename,
+    getDirname,
+    pjson,
+    sleep
 };

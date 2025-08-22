@@ -1,0 +1,34 @@
+{
+  "$id": "IIndicatorLightAction",
+  "$ref": "#/definitions/IIndicatorLightAction",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "GPIOState": {
+      "enum": [
+        0,
+        1
+      ],
+      "type": "number"
+    },
+    "IIndicatorLightAction": {
+      "additionalProperties": false,
+      "properties": {
+        "ledGreenState": {
+          "$ref": "#/definitions/GPIOState"
+        },
+        "ledRedState": {
+          "$ref": "#/definitions/GPIOState"
+        },
+        "ledYellowState": {
+          "$ref": "#/definitions/GPIOState"
+        }
+      },
+      "required": [
+        "ledRedState",
+        "ledYellowState",
+        "ledGreenState"
+      ],
+      "type": "object"
+    }
+  }
+}

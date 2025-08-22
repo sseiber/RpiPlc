@@ -1,6 +1,3 @@
-import { OPCUAServerOptions } from 'node-opcua';
-import { IAssetRootConfig } from './opcuaServerTypes';
-
 export enum ObserveTarget {
     Measurements = 'measurements',
     ParserCommandResponse = 'parserCommandResponse'
@@ -57,23 +54,6 @@ export enum ControlRequestAction {
 export interface IControlRequest {
     action: ControlRequestAction;
     data?: IIndicatorLightAction | IIndicatorLightModeAction | ITfMeasurementAction;
-}
-
-export interface IRpiPlcResponse {
-    succeeded: boolean;
-    message: string;
-    data?: any;
-}
-
-export interface IServiceErrorMessage {
-    message: string;
-}
-
-export interface IRpiPlcConfig {
-    storageRoot: string;
-    plcDeviceConfig: IPlcDeviceConfig;
-    opcuaServerOptions: OPCUAServerOptions;
-    assetRootConfig: IAssetRootConfig;
 }
 
 export const enum GPIOPinMode {
@@ -168,4 +148,21 @@ export interface ITFLunaMeasureResponse extends ITFLunaResponse {
     amp: number;
     tempC: string;
     seq: number;
+}
+
+export interface IServiceResponse {
+    succeeded: boolean;
+    statusCode: number;
+    message: string;
+    data?: any;
+}
+
+export interface IServiceErrorMessage {
+    message: string;
+}
+
+export interface IServiceReply {
+    '2xx': IServiceResponse;
+    '4xx': IServiceErrorMessage;
+    '5xx': IServiceErrorMessage;
 }

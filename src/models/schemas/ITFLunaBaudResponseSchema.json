@@ -1,0 +1,23 @@
+{
+  "$id": "ITFLunaBaudResponse",
+  "$ref": "#/definitions/ITFLunaBaudResponse",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "ITFLunaBaudResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "baudRate": {
+          "type": "number"
+        },
+        "commandId": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "baudRate",
+        "commandId"
+      ],
+      "type": "object"
+    }
+  }
+}

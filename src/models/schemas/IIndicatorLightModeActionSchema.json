@@ -1,0 +1,29 @@
+{
+  "$id": "IIndicatorLightModeAction",
+  "$ref": "#/definitions/IIndicatorLightModeAction",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "IIndicatorLightModeAction": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "$ref": "#/definitions/IndicatorLightMode"
+        }
+      },
+      "required": [
+        "mode"
+      ],
+      "type": "object"
+    },
+    "IndicatorLightMode": {
+      "enum": [
+        "AUTO",
+        "GREEN",
+        "YELLOWFLASHING",
+        "REDFLASHING",
+        "MANUAL"
+      ],
+      "type": "string"
+    }
+  }
+}

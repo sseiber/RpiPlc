@@ -15,7 +15,6 @@ const programArgs = new Command()
 const programOptions = programArgs.opts();
 
 function log(message) {
-    // eslint-disable-next-line no-console
     console.log(message);
 }
 

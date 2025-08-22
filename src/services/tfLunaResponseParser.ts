@@ -23,7 +23,7 @@ import {
     ITFLunaSampleRateResponse,
     ITFLunaMeasureResponse,
     ITFLunaVersionResponse
-} from '../models/rpiPlcTypes';
+} from '../models/rpiPlcTypes.js';
 
 const ModuleName = 'tfLunaResponseParser';
 

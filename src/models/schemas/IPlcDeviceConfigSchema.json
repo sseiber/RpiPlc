@@ -1,0 +1,90 @@
+{
+  "$id": "IPlcDeviceConfig",
+  "$ref": "#/definitions/IPlcDeviceConfig",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "GPIOPinMode": {
+      "enum": [
+        "INPUT",
+        "OUTPUT"
+      ],
+      "type": "string"
+    },
+    "IPlcDeviceConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "indicatorLightDeviceGreen": {
+          "$ref": "#/definitions/IPlcGpioDeviceConfig"
+        },
+        "indicatorLightDeviceRed": {
+          "$ref": "#/definitions/IPlcGpioDeviceConfig"
+        },
+        "indicatorLightDeviceYellow": {
+          "$ref": "#/definitions/IPlcGpioDeviceConfig"
+        },
+        "tfLunaDevice": {
+          "$ref": "#/definitions/IPlcTfLunaDeviceConfig"
+        }
+      },
+      "required": [
+        "indicatorLightDeviceRed",
+        "indicatorLightDeviceYellow",
+        "indicatorLightDeviceGreen",
+        "tfLunaDevice"
+      ],
+      "type": "object"
+    },
+    "IPlcGpioDeviceConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "$ref": "#/definitions/GPIOPinMode"
+        },
+        "pin": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "pin",
+        "mode"
+      ],
+      "type": "object"
+    },
+    "IPlcTfLunaDeviceConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "autoStart": {
+          "type": "boolean"
+        },
+        "buadRate": {
+          "type": "number"
+        },
+        "dangerDistance": {
+          "type": "number"
+        },
+        "deviceId": {
+          "type": "string"
+        },
+        "sampleRate": {
+          "type": "number"
+        },
+        "serialPort": {
+          "type": "string"
+        },
+        "warningDistance": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "deviceId",
+        "serialPort",
+        "buadRate",
+        "sampleRate",
+        "warningDistance",
+        "dangerDistance",
+        "autoStart"
+      ],
+      "type": "object"
+    }
+  }
+}

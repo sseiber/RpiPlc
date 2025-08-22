@@ -1,0 +1,30 @@
+{
+  "$id": "IPlcGpioDeviceConfig",
+  "$ref": "#/definitions/IPlcGpioDeviceConfig",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "GPIOPinMode": {
+      "enum": [
+        "INPUT",
+        "OUTPUT"
+      ],
+      "type": "string"
+    },
+    "IPlcGpioDeviceConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "$ref": "#/definitions/GPIOPinMode"
+        },
+        "pin": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "pin",
+        "mode"
+      ],
+      "type": "object"
+    }
+  }
+}

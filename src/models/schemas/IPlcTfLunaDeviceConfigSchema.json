@@ -1,0 +1,43 @@
+{
+  "$id": "IPlcTfLunaDeviceConfig",
+  "$ref": "#/definitions/IPlcTfLunaDeviceConfig",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "IPlcTfLunaDeviceConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "autoStart": {
+          "type": "boolean"
+        },
+        "buadRate": {
+          "type": "number"
+        },
+        "dangerDistance": {
+          "type": "number"
+        },
+        "deviceId": {
+          "type": "string"
+        },
+        "sampleRate": {
+          "type": "number"
+        },
+        "serialPort": {
+          "type": "string"
+        },
+        "warningDistance": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "deviceId",
+        "serialPort",
+        "buadRate",
+        "sampleRate",
+        "warningDistance",
+        "dangerDistance",
+        "autoStart"
+      ],
+      "type": "object"
+    }
+  }
+}
