@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM node:20-slim as buildStage
+FROM --platform=$BUILDPLATFORM node:22-slim AS buildstage
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -8,14 +8,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssl \
     && rm -rf /var/cache/apk/*
 
-ENV WORKINGDIR /app
+ENV WORKINGDIR=/app
 WORKDIR ${WORKINGDIR}
 
 ADD package.json ${WORKINGDIR}/package.json
 ADD eslint.config.mjs ${WORKINGDIR}/eslint.config.mjs
 ADD tsconfig.json ${WORKINGDIR}/tsconfig.json
-ADD setup ${WORKINGDIR}/setup
-ADD .scripts ${WORKINGDIR}/.scripts
 ADD src ${WORKINGDIR}/src
 
 RUN npm install -q && \
@@ -32,7 +30,7 @@ RUN apk add --no-cache \
     nodejs \
     && rm -rf /var/cache/apk/*
 
-COPY --from=buildStage /app /app
+COPY --from=buildstage /app /app
 
 EXPOSE 9092 4334
 

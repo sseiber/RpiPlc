@@ -7,6 +7,7 @@ const { Command } = require('commander');
 const programArgs = new Command()
     .option('-c, --config-file <configFile>', 'Build config file')
     .option('-b, --docker-build', 'Docker build the image')
+    .option('-f, --docker-file <dockerFile>', 'Docker build file')
     .option('-d, --debug', 'Use debug build options')
     .option('-p, --docker-push', 'Docker push the image')
     .option('-r, --workspace-folder <workspaceFolder>', 'Workspace folder path')
@@ -18,12 +19,13 @@ function log(message) {
     console.log(message);
 }
 
-async function execDockerBuild(dockerArch, dockerImage) {
+async function execDockerBuild(dockerFile, dockerArch, dockerImage) {
     const dockerArgs = [
-        'buildx',
+        // 'buildx',
         'build',
+        '--no-cache',
         '-f',
-        `docker/Dockerfile`,
+        `docker/${dockerFile}`,
         '--platform',
         dockerArch,
         '--push',
@@ -54,6 +56,7 @@ async function start() {
         }
 
         const configFile = programOptions.configFile || `imageConfig.json`;
+        const dockerFile = programOptions.dockerFile || `Dockerfile`;
         const imageConfigFilePath = path.resolve(programOptions.workspaceFolder, `configs`, configFile);
         const imageConfig = fse.readJSONSync(imageConfigFilePath);
         const dockerVersion = imageConfig.versionTag || process.env.npm_package_version || programOptions.imageVersion || 'latest';
@@ -64,7 +67,7 @@ async function start() {
         log(`Platform: ${os.type()}`);
 
         if (programOptions.dockerBuild) {
-            await execDockerBuild(dockerArch, dockerImage);
+            await execDockerBuild(dockerFile, dockerArch, dockerImage);
         }
 
         if (programOptions.dockerPush) {

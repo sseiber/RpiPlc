@@ -1,0 +1,62 @@
+# Use Node.js LTS on Ubuntu ARM64 (compatible with Raspberry Pi 4)
+FROM node:22-bullseye
+
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Set Node environment
+ENV NODE_ENV=production
+
+# Update package list and install GPIO and system packages
+RUN apt-get update && apt-get install -y \
+    # GPIO and hardware access
+    libgpiod2 \
+    libgpiod-dev \
+    gpiod \
+    # Build tools for native modules
+    build-essential \
+    gcc \
+    make \
+    python3 \
+    # System utilities
+    curl \
+    wget \
+    # Clean up to reduce image size
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
+WORKDIR /app
+
+# Copy package files first for better caching
+COPY package*.json ./
+COPY tsconfig.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Install TypeScript globally (for build if needed)
+RUN npm install -g typescript
+
+# Copy source code
+COPY src/ ./src/
+
+# Build TypeScript to JavaScript
+RUN npm run build
+
+# Create a non-root user for security
+RUN useradd -m -s /bin/bash nodeuser && \
+    usermod -aG dialout,gpio nodeuser && \
+    chown -R nodeuser:nodeuser /app
+
+# Switch to non-root user
+USER nodeuser
+
+# Expose default port (adjust as needed)
+EXPOSE 9092
+
+# Health check (optional - adjust endpoint as needed)
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:9092/health || exit 1
+
+# Start the application
+CMD ["node", "./dist/index"]

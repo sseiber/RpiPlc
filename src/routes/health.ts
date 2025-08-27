@@ -15,7 +15,7 @@ const appHealthRouterPlugin: FastifyPluginCallback<IAppHealthRouterPluginOptions
     serverRoute.log.info({ tags: [RouteName] }, `registering...`);
 
     try {
-        serverRoute.get('/health-check', async (_request, response) => {
+        serverRoute.get('/health', async (_request, response) => {
             serverRoute.log.info({ tags: [RouteName] }, `getHealthCheck`);
 
             try {

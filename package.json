@@ -1,6 +1,6 @@
 {
     "name": "rpi-plc",
-    "version": "3.0.0",
+    "version": "4.0.0",
     "type": "module",
     "description": "Rpi sample plc service",
     "engines": {
@@ -15,8 +15,8 @@
         "build:schemas": "rm -f ./src/models/schemas/*.* && node ./.scripts/buildTypeSchemas.cjs --types-file ../src/models/rpiPlcTypes.ts",
         "clean": "tsc --build --clean && npm run clean:all",
         "clean:all": "./.scripts/clean-all.sh",
-        "dockerbuild": "npm run build && node ./.scripts/dockerBuild.js -b -r .",
-        "dockerpush": "node ./.scripts/dockerBuild.js -p -r .",
+        "dockerbuild": "npm run build && node ./.scripts/dockerBuild.cjs -b -r .",
+        "dockerpush": "node ./.scripts/dockerBuild.cjs -p -r .",
         "preversion": "npm test",
         "version": "npm run dockerbuild",
         "postversion": "npm run dockerpush"
@@ -48,7 +48,7 @@
         "@eslint/js": "^9.33.0",
         "@stylistic/eslint-plugin": "^5.2.3",
         "@types/fs-extra": "^11.0.4",
-        "@types/node": "^24.3.0",
+        "@types/node": "^22.18.0",
         "commander": "14.0.0",
         "eslint": "^9.33.0",
         "eslint-plugin-react": "^7.37.5",

@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  rpi-plc:
+    image: sseiber.azurecr.io/rpi-plc:4.0.0
+    container_name: rpi-plc
+    devices:
+    - "/dev/gpiochip0:/dev/gpiochip0"
+    - "/dev/gpiochip1:/dev/gpiochip1"
+    ports:
+    - "9092:9092"
+    volumes:
+    - /rpi-gd:/rpi-gd
+    restart: unless-stopped

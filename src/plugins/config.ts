@@ -17,7 +17,6 @@ import { IPlcDeviceConfig } from '../models/index.js';
 export const PluginName = 'config';
 
 interface IRpiPlcEnv {
-    NODE_ENV: string;
     LOG_LEVEL: string;
     PORT: string;
     rpiPlcStorage: string;
@@ -31,13 +30,9 @@ interface IRpiPlcConfig {
 const configSchema: JSONSchemaType<IRpiPlcEnv> = {
     type: 'object',
     properties: {
-        NODE_ENV: {
-            type: 'string',
-            default: 'development'
-        },
         LOG_LEVEL: {
             type: 'string',
-            default: 'info'
+            default: 'debug'
         },
         PORT: {
             type: 'string',
@@ -45,11 +40,10 @@ const configSchema: JSONSchemaType<IRpiPlcEnv> = {
         },
         rpiPlcStorage: {
             type: 'string',
-            default: 'storage'
+            default: '/rpi-gd/data'
         }
     },
     required: [
-        'NODE_ENV',
         'LOG_LEVEL',
         'PORT',
         'rpiPlcStorage'
@@ -67,7 +61,7 @@ const configPlugin: FastifyPluginAsync<IConfigPluginOptions> = async (server: Fa
             schema: configSchema,
             data: process.env,
             dotenv: {
-                path: pathResolve(getDirname(import.meta.url), `../configs/${process.env.NODE_ENV}.env`)
+                path: pathResolve(getDirname(import.meta.url), `../../configs/${process.env.NODE_ENV}.env`)
             }
         });
 
@@ -77,11 +71,7 @@ const configPlugin: FastifyPluginAsync<IConfigPluginOptions> = async (server: Fa
             }
         }
 
-        const storageRoot = envConfig.rpiPlcStorage
-            ? pathResolve(getDirname(import.meta.url), '..', '..', envConfig.rpiPlcStorage)
-            : '/rpi-gd/data';
-
-        const plcDeviceConfig: IPlcDeviceConfig = await fse.readJson(pathResolve(storageRoot, 'plcConfig.json')) as IPlcDeviceConfig;
+        const plcDeviceConfig: IPlcDeviceConfig = await fse.readJson(pathResolve(envConfig.rpiPlcStorage, 'plcConfig.json')) as IPlcDeviceConfig;
 
         server.decorate(PluginName, {
             env: envConfig,
