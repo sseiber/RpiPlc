@@ -1,0 +1,88 @@
+# Multi-stage Dockerfile for Raspberry Pi 4 (ARM64/amd64v8)
+# Supports node-libgpiod with proper build dependencies
+
+# Stage 1: Build stage with node-gyp and build tools
+FROM arm64v8/node:22-bookworm AS buildstage
+
+# Install build dependencies for node-gyp and libgpiod
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Build essentials for node-gyp
+    build-essential \
+    python3 \
+    make \
+    g++ \
+    # libgpiod development files
+    libgpiod2 \
+    libgpiod-dev \
+    # Additional tools
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Ensure python3 is the default python for node-gyp
+RUN ln -s /usr/bin/python3 /usr/bin/python || true
+
+ENV WORKINGDIR=/app
+WORKDIR ${WORKINGDIR}
+
+# Copy package files first for better caching
+COPY package*.json ${WORKINGDIR}/
+
+# Install all dependencies (including dev dependencies for building)
+RUN npm ci --verbose
+
+# Copy source files
+COPY eslint.config.mjs ${WORKINGDIR}/
+COPY tsconfig.json ${WORKINGDIR}/
+COPY src ${WORKINGDIR}/src
+
+# Build the TypeScript project
+RUN npm run build
+
+# Run linting
+RUN npm run lint
+
+# Remove dev dependencies, keeping only production
+RUN npm prune --production
+
+# Clean up source files after build
+RUN rm -rf src tsconfig.json eslint.config.mjs
+
+# Stage 2: Runtime stage - minimal image for running
+FROM arm64v8/node:22-bookworm-slim AS runtime
+
+# Install only runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Runtime library for GPIO access
+    libgpiod2 \
+    # Clean up
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Create non-root user for running the application
+RUN groupadd -g 997 gpio && \
+    useradd -m -s /bin/bash plcuser && \
+    usermod -aG gpio,dialout plcuser
+
+ENV WORKINGDIR=/app
+WORKDIR ${WORKINGDIR}
+
+# Copy built application from build stage
+COPY --from=buildstage --chown=plcuser:plcuser ${WORKINGDIR}/package*.json ${WORKINGDIR}/
+COPY --from=buildstage --chown=plcuser:plcuser ${WORKINGDIR}/node_modules ${WORKINGDIR}/node_modules
+COPY --from=buildstage --chown=plcuser:plcuser ${WORKINGDIR}/dist ${WORKINGDIR}/dist
+
+# Switch to non-root user
+USER plcuser
+
+# Expose application ports
+EXPOSE 9092 4334
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s \
+    CMD node -e "require('http').get('http://localhost:9092/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
+
+# Set Node.js production environment
+ENV NODE_ENV=production
+
+# Start the application
+ENTRYPOINT ["node", "/app/dist/index.js"]

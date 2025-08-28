@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  rpi-plc:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.rpi4
+      platforms:
+        - linux/arm64/v8
+    image: rpi-plc:latest
+    container_name: rpi-plc-service
+    restart: unless-stopped
+    privileged: true  # Required for GPIO access
+    devices:
+      - /dev/gpiochip0:/dev/gpiochip0  # GPIO chip device
+      - /dev/ttyAMA0:/dev/ttyAMA0      # Serial port for TF-Luna
+    volumes:
+      - ./configs:/app/configs:ro
+      - plc-data:/rpi-gd/data
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+    ports:
+      - "9092:9092"
+      - "4334:4334"
+    networks:
+      - plc-network
+
+volumes:
+  plc-data:
+    driver: local
+
+networks:
+  plc-network:
+    driver: bridge
