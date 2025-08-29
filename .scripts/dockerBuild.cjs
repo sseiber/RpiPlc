@@ -21,9 +21,8 @@ function log(message) {
 
 async function execDockerBuild(dockerFile, dockerArch, dockerImage) {
     const dockerArgs = [
-        // 'buildx',
+        'buildx',
         'build',
-        '--no-cache',
         '-f',
         `docker/${dockerFile}`,
         '--platform',
