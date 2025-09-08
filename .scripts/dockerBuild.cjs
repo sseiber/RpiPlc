@@ -7,10 +7,9 @@ const { Command } = require('commander');
 const programArgs = new Command()
     .option('-c, --config-file <configFile>', 'Build config file')
     .option('-b, --docker-build', 'Docker build the image')
-    .option('-f, --docker-file <dockerFile>', 'Docker build file')
     .option('-d, --debug', 'Use debug build options')
     .option('-p, --docker-push', 'Docker push the image')
-    .option('-r, --workspace-folder <workspaceFolder>', 'Workspace folder path')
+    .option('-w, --workspace-folder-path <workspaceFolderPath>', 'Workspace folder path')
     .option('-v, --image-version <version>', 'Docker image version override')
     .parse(process.argv);
 const programOptions = programArgs.opts();
@@ -19,15 +18,17 @@ function log(message) {
     console.log(message);
 }
 
-async function execDockerBuild(dockerFile, dockerArch, dockerImage) {
+async function execDockerBuild(workspaceName, dockerfile, dockerArch, dockerImage) {
     const dockerArgs = [
         'buildx',
         'build',
+        '--build-arg',
+        `WORKSPACE_NAME=${workspaceName}`,
         '-f',
-        `docker/${dockerFile}`,
+        `docker/${dockerfile}`,
         '--platform',
         dockerArch,
-        '--push',
+        '--load',
         '-t',
         dockerImage,
         '.'
@@ -37,36 +38,36 @@ async function execDockerBuild(dockerFile, dockerArch, dockerImage) {
 }
 
 async function execDockerPush(dockerImage) {
-    // const dockerArgs = [
-    //     'push',
-    //     dockerImage
-    // ];
+    const dockerArgs = [
+        'push',
+        dockerImage
+    ];
 
-    // childProcess.execFileSync('docker', dockerArgs, { stdio: [0, 1, 2] });
-    log(`Multi-arch builds are pushed automatically during the build process`);
+    childProcess.execFileSync('docker', dockerArgs, { stdio: [0, 1, 2] });
 }
 
 async function start() {
     let buildSucceeded = true;
 
     try {
-        if (!programOptions.workspaceFolder) {
-            throw new Error('workspaceFolder parameter is not defined');
+        const workspaceFolderPath = programOptions.workspaceFolderPath ?? path.dirname(process.env.npm_package_json);
+        if (!workspaceFolderPath) {
+            throw new Error('Unable to determine the appropriate workspaceFolderPath for this operation, please specify the workspace folder path using the -w option');
         }
 
-        const configFile = programOptions.configFile || `imageConfig.json`;
-        const dockerFile = programOptions.dockerFile || `Dockerfile`;
-        const imageConfigFilePath = path.resolve(programOptions.workspaceFolder, `configs`, configFile);
+        const configFile = programOptions.configFile ?? `imageConfig.json`;
+        const imageConfigFilePath = path.resolve(workspaceFolderPath, `configs`, configFile);
         const imageConfig = fse.readJSONSync(imageConfigFilePath);
-        const dockerVersion = imageConfig.versionTag || process.env.npm_package_version || programOptions.imageVersion || 'latest';
-        const dockerArch = `${imageConfig.arch}` || 'linux/amd64';
+        const dockerfile = imageConfig.dockerfile ?? `Dockerfile`;
+        const dockerVersion = imageConfig.versionTag ?? process.env.npm_package_version ?? programOptions.imageVersion ?? 'latest';
+        const dockerArch = `${imageConfig.arch}` ?? 'linux/amd64';
         const dockerImage = `${imageConfig.imageName}:${dockerVersion}`;
 
         log(`Docker image: ${dockerImage}`);
         log(`Platform: ${os.type()}`);
 
         if (programOptions.dockerBuild) {
-            await execDockerBuild(dockerFile, dockerArch, dockerImage);
+            await execDockerBuild(path.basename(workspaceFolderPath), dockerfile, dockerArch, dockerImage);
         }
 
         if (programOptions.dockerPush) {

@@ -8,16 +8,14 @@
     },
     "main": "dist/index.js",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1",
+        "test": "echo \"TODO: need tests\"",
         "lint": "eslint .",
         "build": "tsc --build --verbose",
         "build:all": "tsc --build --force --verbose",
         "build:schemas": "rm -f ./src/models/schemas/*.* && node ./.scripts/buildTypeSchemas.cjs --types-file ../src/models/rpiPlcTypes.ts",
         "clean": "tsc --build --clean && npm run clean:all",
         "clean:all": "./.scripts/clean-all.sh",
-        "dockerbuild": "npm run build && node ./.scripts/dockerBuild.cjs -b -r .",
-        "dockerbuild:rpi4": "./.scripts/dockerBuildRpi4.sh",
-        "dockerpush": "node ./.scripts/dockerBuild.cjs -p -r .",
+        "dockerbuild": "npm run build && node ./.scripts/dockerBuild.cjs -b -p",
         "preversion": "npm test",
         "version": "npm run dockerbuild",
         "postversion": "npm run dockerpush"
